@@ -22,6 +22,12 @@ public sealed class GenericSyncService(
         "whatsapp"
     };
 
+    private static readonly HashSet<string> ImplementedModules = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "clients",
+        "inventory"
+    };
+
     public async Task<GenericSyncPushResponse> PushAsync(
         ClaimsPrincipal user,
         string module,
@@ -30,6 +36,7 @@ public sealed class GenericSyncService(
         var stopwatch = Stopwatch.StartNew();
         var businessId = FinancialSyncMapper.GetBusinessIdForBusinessUser(user, $"sync {module}");
         var normalizedModule = ValidateModule(module);
+        EnsureModuleImplemented(normalizedModule);
         var deviceId = ValidateDeviceId(request.DeviceId);
         var errors = ValidateChanges(request);
         var accepted = 0;
@@ -62,10 +69,6 @@ public sealed class GenericSyncService(
                     errors.Add(error);
                 }
             }
-        }
-        else if (errors.Count == 0)
-        {
-            accepted = request.Changes.Count;
         }
         stopwatch.Stop();
 
@@ -123,6 +126,7 @@ public sealed class GenericSyncService(
         var stopwatch = Stopwatch.StartNew();
         var businessId = FinancialSyncMapper.GetBusinessIdForBusinessUser(user, $"sync {module}");
         var normalizedModule = ValidateModule(module);
+        EnsureModuleImplemented(normalizedModule);
         var deviceId = ValidateDeviceId(request.DeviceId);
         var changes = new List<object>();
         if (string.Equals(normalizedModule, "clients", StringComparison.OrdinalIgnoreCase))
@@ -185,6 +189,15 @@ public sealed class GenericSyncService(
             throw new InvalidOperationException($"Modulo de sync no soportado: {module}");
         }
         return normalized;
+    }
+
+    private void EnsureModuleImplemented(string module)
+    {
+        if (!ImplementedModules.Contains(module))
+        {
+            logger.LogWarning("[sync-v2-not-implemented] module={Module}", module);
+            throw new NotSupportedException("No se pudo actualizar.");
+        }
     }
 
     private static string ValidateDeviceId(string? deviceId)
