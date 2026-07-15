@@ -34,12 +34,26 @@ Logs:
 
 Policy update: Codex must not directly execute commands that start with `dart` or `flutter`.
 
-- `dart format --output=none --set-exit-if-changed .`: `NO VALIDADO`.
-- `flutter analyze`: `NO VALIDADO`.
-- `flutter test`: `NO VALIDADO`.
+- `dart --version`: `APROBADO`, exit code `0`, Dart SDK `3.11.4`.
+- `flutter --version`: `APROBADO`, exit code `0`, Flutter `3.41.6`, Dart `3.11.4`.
+- `dart format --output=none --set-exit-if-changed .`: `APROBADO`, exit code `0`, `Formatted 271 files (0 changed) in 1.56 seconds.`
+- `flutter analyze`: `FALLÓ`, exit code `1`.
+- `flutter test`: `NO EJECUTADO`, blocked after analyze failure.
 
-These validations require manual execution by the user under the hybrid execution protocol.
+Analyze failure:
+
+```text
+info - Use the null-aware marker '?' rather than a null check via an 'if' - lib\data\repositories\sync_outbox_repository.dart:198:37 - use_null_aware_elements
+```
+
+Logs:
+
+- `docs/version-control/baseline-logs/dart-format-check-final.txt`
+- `docs/version-control/baseline-logs/flutter-analyze-final.txt`
+- `docs/version-control/baseline-logs/VALIDATION_RESULTS.md`
 
 ## Verdict
 
-Repository normalization and backend .NET validation are complete and approved with logs. Dart/Flutter validation remains pending manual execution.
+Repository normalization, backend .NET validation, Dart availability, Flutter availability, and Dart format check are approved with logs.
+
+Stable tag creation is blocked because `flutter analyze` failed. Flutter tests were not executed after the analyze failure.
