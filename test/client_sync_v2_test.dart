@@ -354,6 +354,12 @@ class _ClientFixture {
     await db.execute(DatabaseSchema.createMovimientosTable);
     await db.execute(DatabaseSchema.createSyncOutboxTable);
     await db.execute(DatabaseSchema.createSyncStateTable);
+    for (final index in DatabaseSchema.initialIndexes) {
+      if (index.contains('idx_sync_outbox_') ||
+          index.contains('idx_sync_state_')) {
+        await db.execute(index);
+      }
+    }
     final localDatabase = _MemoryLocalDatabase(db);
     final outbox = SyncOutboxRepository(databaseHelper: localDatabase);
     final syncQueue = SyncQueueRepository(databaseHelper: localDatabase);

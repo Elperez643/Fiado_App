@@ -195,7 +195,7 @@ class SyncOutboxRepository {
     final rows = await db.rawQuery(
       'SELECT COUNT(*) FROM ${DatabaseSchema.syncOutboxTable} '
       'WHERE status = ?${module == null ? '' : ' AND module = ?'}',
-      [SyncOutboxItem.statusFailed, if (module != null) module],
+      [SyncOutboxItem.statusFailed, ?module],
     );
     return Sqflite.firstIntValue(rows) ?? 0;
   }
