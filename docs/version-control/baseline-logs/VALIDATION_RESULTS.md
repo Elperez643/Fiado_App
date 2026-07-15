@@ -16,40 +16,61 @@ Scope: final governed baseline validation before creating a stable tag and CI wo
 | Validation | Command | Exit Code | Status | Log |
 | --- | --- | ---: | --- | --- |
 | Dart format check | `dart format --output=none --set-exit-if-changed .` | 0 | APROBADO | `docs/version-control/baseline-logs/dart-format-check-final.txt` |
-| Flutter analyze | `flutter analyze` | 1 | FALLÓ | `docs/version-control/baseline-logs/flutter-analyze-final.txt` |
-| Flutter test | `flutter test` | N/A | NO EJECUTADO | Blocked after `flutter analyze` failure |
+| Targeted lint fix format check | `dart format --output=none --set-exit-if-changed lib\data\repositories\sync_outbox_repository.dart` | 0 | APROBADO | Manual output: `Formatted 1 file (0 changed) in 0.01 seconds.` |
+| Flutter analyze after lint fix | `flutter analyze` | 0 | APROBADO | `docs/version-control/baseline-logs/flutter-analyze-final.txt` |
+| Targeted failing test | `flutter test test/client_sync_v2_test.dart --plain-name "pull exitoso sin pendientes limpia error visible anterior"` | 0 | APROBADO | Manual output: `All tests passed!` |
+| Client sync test file | `flutter test test/client_sync_v2_test.dart` | 0 | APROBADO | Manual output: `All tests passed!` |
+| Flutter full test suite | `flutter test` | 0 | APROBADO | `docs/version-control/baseline-logs/flutter-test-final.txt` |
 
-## Dart Format Summary
+## Lint Correction
+
+Corrected lint:
 
 ```text
-Formatted 271 files (0 changed) in 1.56 seconds.
+use_null_aware_elements
+lib\data\repositories\sync_outbox_repository.dart:198:37
 ```
 
-Classification: `APROBADO`.
+Implementation:
+
+```dart
+[SyncOutboxItem.statusFailed, ?module]
+```
+
+This preserves the previous condition and order: `module` is included only when it is non-null.
+
+## Test Fixture Correction
+
+Previous full-suite failure:
+
+```text
+test/client_sync_v2_test.dart:167
+Bad state: Too many elements
+```
+
+Root cause: `_ClientFixture.open()` created `sync_state` but did not apply the production/test schema indexes. Without `idx_sync_state_business_module`, `SyncStateRepository.upsert()` could insert a second logical `clients` state row instead of replacing the existing `(business_id, module)` row.
+
+Correction: the fixture now applies the same `idx_sync_outbox_` and `idx_sync_state_` indexes used by `DatabaseHelper._ensureNewSyncBaseTables()` and `test/sync_engine_base_test.dart`.
 
 ## Flutter Analyze Summary
 
 ```text
-info - Use the null-aware marker '?' rather than a null check via an 'if' - lib\data\repositories\sync_outbox_repository.dart:198:37 - use_null_aware_elements
-
-1 issue found. (ran in 119.1s)
+Analyzing fiado_app...
+No issues found! (ran in 8.2s)
 ```
 
-Classification: `FALLÓ`.
+Classification: `APROBADO`.
 
-Failure type: static analysis/lint issue.
+## Flutter Test Summary
 
-Current recommendation: fix the preexisting lint in a dedicated functional/code-quality task, then rerun:
-
-```cmd
-flutter analyze
-flutter test
+```text
+00:17 +111: All tests passed!
 ```
+
+Classification: `APROBADO`.
 
 ## Stable Tag Decision
 
-Stable tag creation is blocked.
+The previous blocker is resolved.
 
-Reason: the baseline requires `flutter analyze` to pass before creating `fiado-app-baseline-2026-07-15`.
-
-No stable tag should be created from the current commit until the analyze failure is resolved and Flutter tests are executed successfully.
+Baseline is now eligible for final tag evaluation, but the stable tag has not been created yet.

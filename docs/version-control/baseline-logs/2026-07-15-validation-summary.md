@@ -1,13 +1,13 @@
 # Validation Summary - 2026-07-15
 
-Scope: Git/governance/agents baseline, repository normalization, and allowed backend validation.
+Scope: Git/governance/agents baseline, repository normalization, allowed backend validation, and final Dart/Flutter validation.
 
 ## Current Git Baseline
 
 - Branch: `master`
 - Backup branch: `backup/pre-normalization-2026-07-15`
 - Remote tracking: `origin/master`
-- Current state after repository normalization: clean working tree, local branch ahead of `origin/master`.
+- Current state after repository normalization: local branch ahead of `origin/master`.
 
 ## Repository Normalization Results
 
@@ -37,23 +37,32 @@ Policy update: Codex must not directly execute commands that start with `dart` o
 - `dart --version`: `APROBADO`, exit code `0`, Dart SDK `3.11.4`.
 - `flutter --version`: `APROBADO`, exit code `0`, Flutter `3.41.6`, Dart `3.11.4`.
 - `dart format --output=none --set-exit-if-changed .`: `APROBADO`, exit code `0`, `Formatted 271 files (0 changed) in 1.56 seconds.`
-- `flutter analyze`: `FALLÓ`, exit code `1`.
-- `flutter test`: `NO EJECUTADO`, blocked after analyze failure.
+- `dart format --output=none --set-exit-if-changed lib\data\repositories\sync_outbox_repository.dart`: `APROBADO`, exit code `0`.
+- `flutter analyze`: `APROBADO`, exit code `0`.
+- `flutter test test/client_sync_v2_test.dart --plain-name "pull exitoso sin pendientes limpia error visible anterior"`: `APROBADO`, exit code `0`.
+- `flutter test test/client_sync_v2_test.dart`: `APROBADO`, exit code `0`.
+- `flutter test`: `APROBADO`, exit code `0`, `00:17 +111: All tests passed!`.
 
-Analyze failure:
+Corrected lint:
 
 ```text
-info - Use the null-aware marker '?' rather than a null check via an 'if' - lib\data\repositories\sync_outbox_repository.dart:198:37 - use_null_aware_elements
+use_null_aware_elements - lib\data\repositories\sync_outbox_repository.dart:198:37
 ```
+
+Test fixture correction:
+
+- `test/client_sync_v2_test.dart` now applies `idx_sync_outbox_` and `idx_sync_state_` indexes in its in-memory fixture.
+- This matches the production schema path and prevents duplicate logical `sync_state` rows for `(business_id, module)`.
 
 Logs:
 
 - `docs/version-control/baseline-logs/dart-format-check-final.txt`
 - `docs/version-control/baseline-logs/flutter-analyze-final.txt`
+- `docs/version-control/baseline-logs/flutter-test-final.txt`
 - `docs/version-control/baseline-logs/VALIDATION_RESULTS.md`
 
 ## Verdict
 
-Repository normalization, backend .NET validation, Dart availability, Flutter availability, and Dart format check are approved with logs.
+Repository normalization, backend .NET validation, Dart availability, Flutter availability, Dart format check, Flutter analyze, and Flutter tests are approved with logs.
 
-Stable tag creation is blocked because `flutter analyze` failed. Flutter tests were not executed after the analyze failure.
+The baseline is eligible for final tag evaluation. The stable tag has not been created yet.

@@ -1,5 +1,2 @@
-Analyzing fiado_app...                                          
-
-   info - Use the null-aware marker '?' rather than a null check via an 'if' - lib\data\repositories\sync_outbox_repository.dart:198:37 - use_null_aware_elements
-
-1 issue found. (ran in 119.1s)
+Analyzing fiado_app...
+No issues found! (ran in 8.2s)
