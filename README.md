@@ -15,3 +15,15 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+## Windows validation
+
+For Flutter/Dart validations on Windows, use the timeout scripts in
+`tools\scripts`. Codex must not execute `dart` or `flutter` validation commands
+directly.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\scripts\validate_flutter.ps1
+```
+
+Logs are written to `tools\logs`.
