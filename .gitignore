@@ -104,6 +104,7 @@ tools/logs/
 !.env.example
 appsettings.Development.json
 backend/src/FiadoApp.Api/appsettings.json
+backend/src/FiadoApp.Api/Properties/launchSettings.json
 appsettings.Local.json
 appsettings.StagingLocal.json
 appsettings.*.local.json
