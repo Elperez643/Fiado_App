@@ -43,3 +43,203 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android signing and local SDK configuration
+android/.gradle/
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+
+# iOS/macOS local artifacts
+ios/Pods/
+macos/Pods/
+**/DerivedData/
+*.mobileprovision
+*.p12
+
+# .NET / Visual Studio
+**/bin/
+**/obj/
+.vs/
+TestResults/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code local settings. Keep shared examples and launch/task files.
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Local databases and QA datasets generated during validation
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+qa_data/*.db
+
+# Local logs, temporary files, and Codex working output
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+.codex_appdata/
+.codex_build/
+.codex_dart_appdata/
+.codex_logs/
+tools/.appdata/
+tools/.localappdata/
+tools/logs/
+
+# Secrets and local environment configuration
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.Local.json
+appsettings.StagingLocal.json
+appsettings.*.local.json
+secrets.json
+*.secrets.json
+local.settings.json
+service-account*.json
+
+# Certificates and private keys
+*.pem
+*.key
+*.pfx
+*.cer
+*.crt
+
+# Build outputs and distributable binaries
+*.apk
+*.aab
+*.ipa
+*.exe
+*.msi
+*.dmg
+*.zip
+*.7z
+dist/**/*.apk
+dist/**/*.exe
+dist/**/*.dll
+dist/**/*.wasm
+dist/**/*.so
+dist/web/
+dist/windows/
+
+# Flutter generated plugin symlinks and ephemeral platform output
+linux/flutter/ephemeral/
+macos/Flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# Operating system files
+Thumbs.db
+Desktop.ini
+
+# Android signing and local SDK configuration
+android/.gradle/
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+
+# iOS/macOS local artifacts
+ios/Pods/
+macos/Pods/
+**/DerivedData/
+*.mobileprovision
+*.p12
+
+# .NET / Visual Studio
+**/bin/
+**/obj/
+.vs/
+TestResults/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code local settings. Keep shared examples and launch/task files.
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Local databases and QA datasets generated during validation
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+qa_data/*.db
+
+# Local logs, temporary files, and Codex working output
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+.codex_appdata/
+.codex_build/
+.codex_dart_appdata/
+.codex_logs/
+tools/.appdata/
+tools/.localappdata/
+tools/logs/
+
+# Secrets and local environment configuration
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.Local.json
+appsettings.StagingLocal.json
+appsettings.*.local.json
+secrets.json
+*.secrets.json
+local.settings.json
+service-account*.json
+
+# Certificates and private keys
+*.pem
+*.key
+*.pfx
+*.cer
+*.crt
+
+# Build outputs and distributable binaries
+*.apk
+*.aab
+*.ipa
+*.exe
+*.msi
+*.dmg
+*.zip
+*.7z
+dist/**/*.apk
+dist/**/*.exe
+dist/**/*.dll
+dist/**/*.wasm
+dist/**/*.so
+dist/web/
+dist/windows/
+
+# Flutter generated plugin symlinks and ephemeral platform output
+linux/flutter/ephemeral/
+macos/Flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# Operating system files
+Thumbs.db
+Desktop.ini
