@@ -4,6 +4,30 @@ Local format used: Markdown instruction profiles in `.agents/*.md`.
 
 Reason: The installed Codex CLI from the VS Code extension exposes `codex exec`, `codex review`, plugins, MCP, and session commands, but no visible subcommand for named subagents. The local Codex skill folders include `agents/` directories, but no non-empty agent schema file was available to copy. Therefore the repository stores the five agents as versioned Markdown profiles that Codex can read and execute as role instructions.
 
+Operational status as of 2026-07-15:
+
+```text
+SUBAGENTES OFICIALES SOPORTADOS Y PROBADOS
+```
+
+Evidence:
+
+- Codex CLI found at `c:\Users\eric_\.vscode\extensions\openai.chatgpt-26.623.141536-win32-x64\bin\windows-x86_64\codex.exe`.
+- Codex CLI version: `codex-cli 0.142.5`.
+- The current Codex session exposed official `multi_agent_v1` tools: `spawn_agent`, `wait_agent`, `send_input`, and `close_agent`.
+- Five official subagents were invoked and each returned the requested confirmation:
+  - `AGENTE_1_INVOCABLE`
+  - `AGENTE_2_INVOCABLE`
+  - `AGENTE_3_INVOCABLE`
+  - `AGENTE_4_INVOCABLE`
+  - `AGENTE_5_INVOCABLE`
+
+Important distinction:
+
+- The official subagent runtime is supported and was tested in this session.
+- The five `.agents/*.md` files remain repository role profiles and governance instructions.
+- Named persistent CLI subagents mapped directly to `.agents/*.md` are not proven by the visible CLI help.
+
 VS Code invocation pattern:
 
 1. Open the repository root in VS Code.
@@ -60,5 +84,5 @@ MITIGACIONES: confirmar que no se expone configuracion ni datos privados en el t
 
 Limitacion exacta:
 
-- No se pudo comprobar invocacion automatica por nombre porque la CLI instalada no muestra comando ni schema publico para registrar subagentes ejecutables.
-- Los perfiles estan preparados y versionados; el paso manual es pedir a Codex que lea el perfil correspondiente antes de emitir cada veredicto.
+- No se pudo comprobar invocacion automatica por nombre desde la CLI porque la CLI instalada no muestra comando ni schema publico para registrar subagentes ejecutables persistentes.
+- Los perfiles estan preparados y versionados; para aplicar la gobernanza de Fiado App, pedir a cada subagente oficial o a Codex que lea el perfil correspondiente antes de emitir cada veredicto.

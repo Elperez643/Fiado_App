@@ -43,4 +43,14 @@ Functional validations remain `NO VALIDADO` until the user executes validation c
 
 ## Agent State
 
-Five Markdown profiles exist in `.agents/`, but real named subagent execution remains `NO VALIDADO` until tool support is proven.
+Five Markdown profiles exist in `.agents/`.
+
+Updated result after tool discovery and invocation test:
+
+```text
+SUBAGENTES OFICIALES SOPORTADOS Y PROBADOS
+```
+
+Evidence: the current Codex session exposed `multi_agent_v1` tools and five official subagents were spawned successfully, returning `AGENTE_1_INVOCABLE` through `AGENTE_5_INVOCABLE`.
+
+Remaining limitation: named persistent CLI subagents mapped directly to `.agents/*.md` are not proven by the visible CLI help.
