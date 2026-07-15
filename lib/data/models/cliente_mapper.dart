@@ -14,10 +14,6 @@ extension ClienteMapper on Cliente {
 
 extension ClientEntityMapper on ClientEntity {
   Cliente toLegacyModel() {
-    return Cliente(
-      nombre: nombre,
-      telefono: telefono,
-      deuda: deuda,
-    );
+    return Cliente(nombre: nombre, telefono: telefono, deuda: deuda);
   }
 }

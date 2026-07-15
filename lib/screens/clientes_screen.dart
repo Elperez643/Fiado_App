@@ -1,8 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/utils/money_formatter.dart';
+import '../data/models/solicitud_autorizacion_sqlite_model.dart';
+import '../data/models/usuario_sqlite_model.dart';
 import '../models/cliente.dart';
 import '../models/movimiento.dart';
-import '../services/storage_service.dart';
+import '../presentation/providers/auth_providers.dart';
+import '../presentation/providers/fiado_data_providers.dart';
 import '../widgets/adaptive_layout.dart';
 import '../widgets/cliente_search_dialog.dart';
 import 'detalle_cliente_screen.dart';
@@ -10,20 +17,55 @@ import 'historial_cliente_screen.dart';
 import 'historial_screen.dart';
 import 'inventario_screen.dart';
 
-class ClientesScreen extends StatefulWidget {
+class ClientesScreen extends ConsumerStatefulWidget {
   const ClientesScreen({super.key});
 
   @override
-  State<ClientesScreen> createState() => _ClientesScreenState();
+  ConsumerState<ClientesScreen> createState() => _ClientesScreenState();
 }
 
-class _ClientesScreenState extends State<ClientesScreen> {
-  List<Cliente> clientes = [];
-  List<Movimiento> historial = [];
+class _ClientesAccesoDenegado extends StatelessWidget {
+  const _ClientesAccesoDenegado();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Clientes')),
+      body: const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'No tienes permiso para acceder a clientes, deudas o pagos.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClientesScreenState extends ConsumerState<ClientesScreen> {
+  Future<String?> _nombreNegocioActual() async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return null;
+    if (user.tipoUsuario == UsuarioSqliteModel.tipoNegocio) return user.nombre;
+    final negocioId = user.negocioId;
+    if (negocioId == null) return user.nombre;
+    final negocio = await ref
+        .read(authRepositoryProvider)
+        .obtenerUsuarioPorId(negocioId);
+    return negocio?.nombre ?? user.nombre;
+  }
 
   bool telefonoValido(String telefono) {
     return RegExp(r'^\d{10}$').hasMatch(telefono);
   }
+
+  List<Cliente> get clientes =>
+      ref.read(clientesProvider).valueOrNull?.clientes ?? const [];
+
+  List<Movimiento> get historial =>
+      ref.read(movimientosProvider).valueOrNull ?? const [];
 
   void mostrarErrorTelefono() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -33,23 +75,8 @@ class _ClientesScreenState extends State<ClientesScreen> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    cargarDatos();
-  }
-
-  void cargarDatos() async {
-    clientes = await StorageService.cargarClientes();
-    historial = await StorageService.cargarHistorial();
-    setState(() {});
-  }
-
   void agregarCliente(Cliente cliente) async {
-    setState(() {
-      clientes.add(cliente);
-    });
-    await StorageService.guardarClientes(clientes);
+    await ref.read(clientesProvider.notifier).guardarCliente(cliente);
   }
 
   Cliente? buscarClientePorTelefono(String telefono, {Cliente? excluir}) {
@@ -79,9 +106,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Ese numero ya pertenece a un cliente registrado.',
-              ),
+              const Text('Ese numero ya pertenece a un cliente registrado.'),
               const SizedBox(height: 14),
               Container(
                 width: double.infinity,
@@ -184,8 +209,9 @@ class _ClientesScreenState extends State<ClientesScreen> {
                   return;
                 }
 
-                final clienteExistente =
-                    buscarClientePorTelefono(telefonoLimpio);
+                final clienteExistente = buscarClientePorTelefono(
+                  telefonoLimpio,
+                );
                 if (clienteExistente != null) {
                   telefono = '';
                   telefonoController.clear();
@@ -194,10 +220,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
                 }
 
                 agregarCliente(
-                  Cliente(
-                    nombre: nombreLimpio,
-                    telefono: telefonoLimpio,
-                  ),
+                  Cliente(nombre: nombreLimpio, telefono: telefonoLimpio),
                 );
                 Navigator.pop(context);
               },
@@ -287,22 +310,43 @@ class _ClientesScreenState extends State<ClientesScreen> {
                   return;
                 }
 
-                setState(() {
-                  cliente.nombre = nombreLimpio;
-                  cliente.telefono = telefonoLimpio;
+                final clienteActualizado = Cliente(
+                  id: cliente.id,
+                  nombre: nombreLimpio,
+                  telefono: telefonoLimpio,
+                  deuda: cliente.deuda,
+                );
 
-                  for (final movimiento in historial) {
-                    if (movimiento.nombreCliente == nombreAnterior) {
-                      movimiento.nombreCliente = nombreLimpio;
+                final solicitado = await _solicitarOCambiarCliente(
+                  tipoSolicitud:
+                      SolicitudAutorizacionSqliteModel.tipoEditarCliente,
+                  clienteAntes: cliente,
+                  clienteDespues: clienteActualizado,
+                  accionDirecta: () async {
+                    await ref
+                        .read(clientesProvider.notifier)
+                        .actualizarCliente(
+                          cliente: clienteActualizado,
+                          telefonoAnterior: cliente.telefono,
+                        );
+
+                    if (nombreAnterior != nombreLimpio) {
+                      ref.invalidate(movimientosProvider);
                     }
-                  }
-                });
+                  },
+                );
 
-                await StorageService.guardarClientes(clientes);
-                await StorageService.guardarHistorial(historial);
-
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        solicitado
+                            ? 'Solicitud de edicion enviada al negocio.'
+                            : 'Cliente actualizado.',
+                      ),
+                    ),
+                  );
                 }
               },
               child: const Text('Guardar cambios'),
@@ -347,16 +391,83 @@ class _ClientesScreenState extends State<ClientesScreen> {
       return;
     }
 
-    setState(() {
-      clientes.remove(cliente);
-      historial.removeWhere((m) => m.nombreCliente == cliente.nombre);
-    });
+    final solicitado = await _solicitarOCambiarCliente(
+      tipoSolicitud: SolicitudAutorizacionSqliteModel.tipoEliminarCliente,
+      clienteAntes: cliente,
+      clienteDespues: cliente,
+      accionDirecta: () async {
+        await ref
+            .read(movimientosProvider.notifier)
+            .eliminarPorCliente(
+              cliente.nombre,
+              clienteId: cliente.id,
+              clienteTelefono: cliente.telefono,
+            );
+        await ref.read(clientesProvider.notifier).eliminarCliente(cliente);
+      },
+    );
 
-    await StorageService.guardarClientes(clientes);
-    await StorageService.guardarHistorial(historial);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            solicitado
+                ? 'Solicitud de eliminacion enviada al negocio.'
+                : 'Cliente eliminado.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<bool> _solicitarOCambiarCliente({
+    required String tipoSolicitud,
+    required Cliente clienteAntes,
+    required Cliente clienteDespues,
+    required Future<void> Function() accionDirecta,
+  }) async {
+    final user = ref.read(currentUserProvider);
+    final esColaborador =
+        user?.tipoUsuario == UsuarioSqliteModel.tipoColaborador;
+
+    if (!esColaborador) {
+      await accionDirecta();
+      return false;
+    }
+
+    if (user?.id == null || user?.negocioId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo identificar el negocio asociado.'),
+        ),
+      );
+      return true;
+    }
+
+    await ref
+        .read(solicitudAutorizacionRepositoryProvider)
+        .crearSolicitud(
+          negocioId: user!.negocioId!,
+          colaboradorId: user.id!,
+          tipoSolicitud: tipoSolicitud,
+          entidad: SolicitudAutorizacionSqliteModel.entidadCliente,
+          datosAntes: jsonEncode(clienteAntes.toJson()),
+          datosDespues: jsonEncode(clienteDespues.toJson()),
+        );
+
+    ref.invalidate(solicitudesColaboradorProvider);
+    ref.invalidate(solicitudesPendientesProvider);
+    ref.invalidate(solicitudesPendientesCountProvider);
+    return true;
   }
 
   void mostrarOpcionesCliente(Cliente cliente) {
+    final user = ref.read(currentUserProvider);
+    final esColaborador =
+        user?.tipoUsuario == UsuarioSqliteModel.tipoColaborador;
+    final puedeGestionarDeudas = ref
+        .read(currentPermissionsProvider)
+        .canManageClientes;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -383,34 +494,43 @@ class _ClientesScreenState extends State<ClientesScreen> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.edit_outlined),
-                  title: const Text('Editar cliente'),
+                  title: Text(
+                    esColaborador
+                        ? 'Solicitar editar cliente'
+                        : 'Editar cliente',
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                     mostrarEditarCliente(cliente);
                   },
                 ),
-                ListTile(
-                  leading: const Icon(Icons.add_card_outlined),
-                  title: const Text('Agregar deuda'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    mostrarAgregarDeuda(cliente);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.payments_outlined),
-                  title: const Text('Registrar pago'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    mostrarRegistrarPago(cliente);
-                  },
-                ),
+                if (puedeGestionarDeudas)
+                  ListTile(
+                    leading: const Icon(Icons.add_card_outlined),
+                    title: const Text('Agregar deuda'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      mostrarAgregarDeuda(cliente);
+                    },
+                  ),
+                if (puedeGestionarDeudas)
+                  ListTile(
+                    leading: const Icon(Icons.payments_outlined),
+                    title: const Text('Registrar pago'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      mostrarRegistrarPago(cliente);
+                    },
+                  ),
                 ListTile(
                   leading: const Icon(
                     Icons.delete_outline,
                     color: Color(0xFFB42318),
                   ),
                   title: const Text('Eliminar cliente'),
+                  subtitle: esColaborador
+                      ? const Text('Requiere aprobacion del negocio')
+                      : null,
                   onTap: () {
                     Navigator.pop(context);
                     eliminarCliente(cliente);
@@ -457,23 +577,52 @@ class _ClientesScreenState extends State<ClientesScreen> {
                   return;
                 }
 
-                setState(() {
-                  cliente.deuda += valor;
+                final movimiento = Movimiento(
+                  clienteId: cliente.id,
+                  nombreCliente: cliente.nombre,
+                  clienteTelefono: cliente.telefono,
+                  tipo: 'deuda',
+                  monto: valor,
+                  fecha: DateTime.now(),
+                );
+                final nuevoSaldo = cliente.deuda + valor;
+                await ref
+                    .read(clientesProvider.notifier)
+                    .actualizarCliente(
+                      cliente: Cliente(
+                        id: cliente.id,
+                        nombre: cliente.nombre,
+                        telefono: cliente.telefono,
+                        deuda: nuevoSaldo,
+                      ),
+                    );
+                final movimientoId = await ref
+                    .read(movimientosProvider.notifier)
+                    .guardarMovimiento(
+                      movimiento,
+                      clienteTelefono: cliente.telefono,
+                    );
+                final user = ref.read(currentUserProvider);
+                final negocioId = ref.read(currentBusinessIdProvider);
+                if (negocioId == null) return;
+                await ref
+                    .read(comprobanteRepositoryProvider)
+                    .crearComprobanteDeuda(
+                      negocioId: negocioId,
+                      movimientoId: movimientoId,
+                      clienteNombre: cliente.nombre,
+                      clienteTelefono: cliente.telefono,
+                      negocioNombre: await _nombreNegocioActual(),
+                      fecha: movimiento.fecha,
+                      concepto: movimiento.concepto,
+                      productos: const [],
+                      total: valor,
+                      saldoPendiente: nuevoSaldo,
+                      creadoPorUsuarioId: user?.id,
+                      creadoPorNombre: user?.nombre,
+                    );
 
-                  historial.add(
-                    Movimiento(
-                      nombreCliente: cliente.nombre,
-                      tipo: 'deuda',
-                      monto: valor,
-                      fecha: DateTime.now(),
-                    ),
-                  );
-                });
-
-                await StorageService.guardarClientes(clientes);
-                await StorageService.guardarHistorial(historial);
-
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                 }
               },
@@ -517,23 +666,52 @@ class _ClientesScreenState extends State<ClientesScreen> {
                   return;
                 }
 
-                setState(() {
-                  cliente.deuda -= pago;
+                final saldoAnterior = cliente.deuda;
+                final saldoNuevo = saldoAnterior - pago;
+                final movimiento = Movimiento(
+                  clienteId: cliente.id,
+                  nombreCliente: cliente.nombre,
+                  clienteTelefono: cliente.telefono,
+                  tipo: 'pago',
+                  monto: pago,
+                  fecha: DateTime.now(),
+                );
+                await ref
+                    .read(clientesProvider.notifier)
+                    .actualizarCliente(
+                      cliente: Cliente(
+                        id: cliente.id,
+                        nombre: cliente.nombre,
+                        telefono: cliente.telefono,
+                        deuda: saldoNuevo,
+                      ),
+                    );
+                final movimientoId = await ref
+                    .read(movimientosProvider.notifier)
+                    .guardarMovimiento(
+                      movimiento,
+                      clienteTelefono: cliente.telefono,
+                    );
+                final user = ref.read(currentUserProvider);
+                final negocioId = ref.read(currentBusinessIdProvider);
+                if (negocioId == null) return;
+                await ref
+                    .read(comprobanteRepositoryProvider)
+                    .crearComprobantePago(
+                      negocioId: negocioId,
+                      movimientoId: movimientoId,
+                      clienteNombre: cliente.nombre,
+                      clienteTelefono: cliente.telefono,
+                      negocioNombre: await _nombreNegocioActual(),
+                      fecha: movimiento.fecha,
+                      montoPagado: pago,
+                      deudaAnterior: saldoAnterior,
+                      saldoNuevo: saldoNuevo,
+                      creadoPorUsuarioId: user?.id,
+                      creadoPorNombre: user?.nombre,
+                    );
 
-                  historial.add(
-                    Movimiento(
-                      nombreCliente: cliente.nombre,
-                      tipo: 'pago',
-                      monto: pago,
-                      fecha: DateTime.now(),
-                    ),
-                  );
-                });
-
-                await StorageService.guardarClientes(clientes);
-                await StorageService.guardarHistorial(historial);
-
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                 }
               },
@@ -554,9 +732,59 @@ class _ClientesScreenState extends State<ClientesScreen> {
   }
 
   Future<void> buscarCliente() async {
+    final textoController = TextEditingController(
+      text: ref.read(clienteBusquedaProvider),
+    );
+
+    final busqueda = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          title: const Text('Buscar cliente'),
+          content: TextField(
+            controller: textoController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Nombre o telefono',
+              prefixIcon: Icon(Icons.search_rounded),
+            ),
+            onSubmitted: (value) => Navigator.pop(context, value),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, ''),
+              child: const Text('Limpiar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, textoController.text),
+              child: const Text('Buscar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    Future<void>.delayed(const Duration(milliseconds: 400), () {
+      textoController.dispose();
+    });
+
+    if (busqueda == null || !mounted) {
+      return;
+    }
+
+    ref.read(clienteBusquedaProvider.notifier).state = busqueda.trim();
+    final resultado = await ref.read(clientesProvider.future);
+
+    if (!mounted) {
+      return;
+    }
+
     final cliente = await showClienteSearchDialog(
       context: context,
-      clientes: clientes,
+      clientes: resultado.clientes,
     );
 
     if (cliente == null || !mounted) {
@@ -566,17 +794,85 @@ class _ClientesScreenState extends State<ClientesScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => HistorialClienteScreen(
-          cliente: cliente,
-          historial: historial,
-        ),
+        builder: (_) =>
+            HistorialClienteScreen(cliente: cliente, historial: historial),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final permissions = ref.watch(currentPermissionsProvider);
+    if (!permissions.canViewClientes) {
+      return const _ClientesAccesoDenegado();
+    }
+
+    final clientesAsync = ref.watch(clientesProvider);
+    final movimientosAsync = ref.watch(movimientosProvider);
+    final clientesState = clientesAsync.valueOrNull;
+    final clientes = clientesState?.clientes ?? const <Cliente>[];
+    final historial = movimientosAsync.valueOrNull ?? const <Movimiento>[];
     final textTheme = Theme.of(context).textTheme;
+    final deudaPendiente = clientes.fold<double>(
+      0,
+      (total, cliente) => total + cliente.deuda,
+    );
+    final clientesConSaldo = clientes
+        .where((cliente) => cliente.deuda > 0)
+        .length;
+    final pagosRegistrados = historial
+        .where((movimiento) => movimiento.tipo == 'pago')
+        .length;
+    final pagosTotal = historial
+        .where((movimiento) => movimiento.tipo == 'pago')
+        .fold<double>(0, (total, movimiento) => total + movimiento.monto);
+
+    if (clientesAsync.hasError && clientesState == null) {
+      return Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: Color(0xFFB42318),
+                    size: 42,
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'No se pudieron cargar los clientes',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF17322C),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      ref.read(clientesProvider.notifier).recargar();
+                      ref.read(movimientosProvider.notifier).recargar();
+                    },
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (clientesAsync.isLoading && clientesState == null) {
+      return const Scaffold(
+        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+      );
+    }
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
@@ -587,402 +883,575 @@ class _ClientesScreenState extends State<ClientesScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final contentPadding =
-                AdaptiveLayout.contentInset(constraints.maxWidth);
+            final contentPadding = AdaptiveLayout.contentInset(
+              constraints.maxWidth,
+            );
 
             return CustomScrollView(
               slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  contentPadding,
-                  18,
-                  contentPadding,
-                  14,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        if (Navigator.canPop(context)) ...[
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: IconButton(
-                              icon: const Icon(Icons.arrow_back_rounded),
-                              tooltip: 'Volver',
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                        ],
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Clientes',
-                                style: textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF17322C),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Administra deudas, pagos y seguimiento diario.',
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: const Color(0xFF66756D),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.search_rounded),
-                                tooltip: 'Buscar cliente',
-                                onPressed: buscarCliente,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.inventory_2_outlined),
-                                tooltip: 'Inventario',
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const InventarioScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.history_rounded),
-                                tooltip: 'Historial',
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          HistorialScreen(
-                                        historial: historial,
-                                        clientes: clientes,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 22),
-                    Container(
-                      padding: const EdgeInsets.all(22),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF17322C), Color(0xFF1F7A6B)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x2217322C),
-                            blurRadius: 24,
-                            offset: Offset(0, 14),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(99),
-                            ),
-                            child: const Text(
-                              'Resumen general',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          Text(
-                            'RD\$${deudaTotal.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -1,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Saldo total pendiente',
-                            style: TextStyle(
-                              color: Color(0xFFDCE9E5),
-                              fontSize: 15,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _MetricTile(
-                                  label: 'Clientes',
-                                  value: '${clientes.length}',
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _MetricTile(
-                                  label: 'Con deuda',
-                                  value: '$clientesConDeuda',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                    Text(
-                      'Tu cartera',
-                      style: textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF17322C),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      clientes.isEmpty
-                          ? 'Agrega tu primer cliente para empezar.'
-                          : 'Manten pulsado sobre una tarjeta para ver acciones rapidas.',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF66756D),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            clientes.isEmpty
-                ? SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(28),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 86,
-                              height: 86,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                              child: const Icon(
-                                Icons.groups_2_outlined,
-                                size: 40,
-                                color: Color(0xFF1F7A6B),
-                              ),
-                            ),
-                            const SizedBox(height: 18),
-                            Text(
-                              'No hay clientes registrados',
-                              style: textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF17322C),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Crea tu primer cliente y empieza a llevar el control del fiado con una vista mucho mas clara.',
-                              textAlign: TextAlign.center,
-                              style: textTheme.bodyMedium?.copyWith(
-                                color: const Color(0xFF66756D),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  )
-                : SliverPadding(
+                SliverToBoxAdapter(
+                  child: Padding(
                     padding: EdgeInsets.fromLTRB(
                       contentPadding,
-                      6,
+                      18,
                       contentPadding,
-                      110,
+                      14,
                     ),
-                    sliver: SliverList.builder(
-                      itemCount: clientes.length,
-                      itemBuilder: (context, index) {
-                        final cliente = clientes[index];
-                        final tieneDeuda = cliente.deuda > 0;
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(26),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DetalleClienteScreen(
-                                    cliente: cliente,
-                                    historial: historial,
-                                    clientes: clientes,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (Navigator.canPop(context)) ...[
+                              _HeaderActionButton(
+                                icon: Icons.arrow_back_rounded,
+                                tooltip: 'Volver',
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Clientes',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: textTheme.headlineMedium?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFF17322C),
+                                    ),
                                   ),
-                                ),
-                              ).then((_) => setState(() {}));
-                            },
-                            onLongPress: () {
-                              mostrarOpcionesCliente(cliente);
-                            },
-                            child: Ink(
-                              padding: const EdgeInsets.all(18),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(26),
-                                border: Border.all(
-                                  color: tieneDeuda
-                                      ? const Color(0xFFF3D6D0)
-                                      : const Color(0xFFD9E8E3),
-                                ),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x12000000),
-                                    blurRadius: 18,
-                                    offset: Offset(0, 10),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Administra deudas, pagos y seguimiento diario.',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      color: const Color(0xFF66756D),
+                                    ),
                                   ),
                                 ],
                               ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 54,
-                                    height: 54,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(18),
-                                      color: tieneDeuda
-                                          ? const Color(0xFFFDEAE5)
-                                          : const Color(0xFFE7F3EF),
-                                    ),
-                                    child: Icon(
-                                      tieneDeuda
-                                          ? Icons.trending_up_rounded
-                                          : Icons.verified_rounded,
-                                      color: tieneDeuda
-                                          ? const Color(0xFFB54708)
-                                          : const Color(0xFF1F7A6B),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            _HeaderActionButton(
+                              icon: Icons.search_rounded,
+                              tooltip: 'Buscar cliente',
+                              onPressed: buscarCliente,
+                            ),
+                            _HeaderActionButton(
+                              icon: Icons.refresh_rounded,
+                              tooltip: 'Recargar',
+                              onPressed: () {
+                                ref.read(clientesProvider.notifier).recargar();
+                                ref
+                                    .read(movimientosProvider.notifier)
+                                    .recargar();
+                              },
+                            ),
+                            _HeaderActionButton(
+                              icon: Icons.inventory_2_outlined,
+                              tooltip: 'Inventario',
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const InventarioScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _HeaderActionButton(
+                              icon: Icons.history_rounded,
+                              tooltip: 'Historial',
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => HistorialScreen(
+                                      historial: historial,
+                                      clientes: clientes,
                                     ),
                                   ),
-                                  const SizedBox(width: 14),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.all(22),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(26),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF17322C), Color(0xFF1F7A6B)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x2217322C),
+                                blurRadius: 24,
+                                offset: Offset(0, 14),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 46,
+                                    height: 46,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.14,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: const Icon(
+                                      Icons.groups_2_outlined,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          cliente.nombre,
-                                          style: const TextStyle(
-                                            fontSize: 17,
+                                        const Text(
+                                          'Resumen de cartera',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
                                             fontWeight: FontWeight.w800,
-                                            color: Color(0xFF17322C),
                                           ),
                                         ),
-                                        const SizedBox(height: 6),
+                                        const SizedBox(height: 4),
                                         Text(
-                                          cliente.telefono,
+                                          clientesConSaldo == 0
+                                              ? 'Cartera sin saldos pendientes'
+                                              : '$clientesConSaldo clientes requieren seguimiento',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
-                                            color: Color(0xFF66756D),
-                                            fontSize: 14,
+                                            color: Color(0xFFDCE9E5),
+                                            fontSize: 13,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 6,
+                                ],
+                              ),
+                              const SizedBox(height: 18),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.13),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.12),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Saldo total pendiente',
+                                      style: TextStyle(
+                                        color: Color(0xFFDCE9E5),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        MoneyFormatter.formatCurrency(
+                                          deudaPendiente,
                                         ),
+                                        maxLines: 1,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 30,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final crossAxisCount =
+                                      constraints.maxWidth >= 720
+                                      ? 4
+                                      : constraints.maxWidth >= 360
+                                      ? 2
+                                      : 1;
+                                  final tiles = [
+                                    _MetricTile(
+                                      icon: Icons.people_alt_outlined,
+                                      label: 'Clientes',
+                                      value: '${clientes.length}',
+                                    ),
+                                    _MetricTile(
+                                      icon:
+                                          Icons.account_balance_wallet_outlined,
+                                      label: 'Con saldo',
+                                      value: '$clientesConSaldo',
+                                    ),
+                                    _MetricTile(
+                                      icon: Icons.payments_outlined,
+                                      label: 'Pagos',
+                                      value: '$pagosRegistrados',
+                                    ),
+                                    _MetricTile(
+                                      icon: Icons.receipt_long_outlined,
+                                      label: 'Pagado',
+                                      value: MoneyFormatter.formatCurrency(
+                                        pagosTotal,
+                                      ),
+                                    ),
+                                  ];
+
+                                  return GridView.count(
+                                    crossAxisCount: crossAxisCount,
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                    childAspectRatio: crossAxisCount == 1
+                                        ? 3.3
+                                        : 1.95,
+                                    children: tiles,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        Text(
+                          'Tu cartera',
+                          style: textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF17322C),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          clientes.isEmpty
+                              ? 'Agrega tu primer cliente para empezar.'
+                              : 'Manten pulsado sobre una tarjeta para ver acciones rapidas.',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF66756D),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                clientes.isEmpty
+                    ? SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(28),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 86,
+                                  height: 86,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                  child: const Icon(
+                                    Icons.groups_2_outlined,
+                                    size: 40,
+                                    color: Color(0xFF1F7A6B),
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                Text(
+                                  'No hay clientes registrados',
+                                  style: textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF17322C),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Crea tu primer cliente y empieza a llevar el control del fiado con una vista mucho mas clara.',
+                                  textAlign: TextAlign.center,
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: const Color(0xFF66756D),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          contentPadding,
+                          6,
+                          contentPadding,
+                          110,
+                        ),
+                        sliver: SliverList.builder(
+                          itemCount:
+                              clientes.length +
+                              ((clientesState?.hasMore ?? false) ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index >= clientes.length) {
+                              final isLoadingMore =
+                                  clientesState?.isLoadingMore ?? false;
+
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 4,
+                                  bottom: 14,
+                                ),
+                                child: Center(
+                                  child: OutlinedButton.icon(
+                                    onPressed: isLoadingMore
+                                        ? null
+                                        : () => ref
+                                              .read(clientesProvider.notifier)
+                                              .cargarMas(),
+                                    icon: isLoadingMore
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.expand_more_rounded),
+                                    label: Text(
+                                      isLoadingMore
+                                          ? 'Cargando'
+                                          : 'Cargar mas clientes',
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final cliente = clientes[index];
+                            final tieneDeuda = cliente.deuda > 0;
+                            final movimientosCliente = historial.where((
+                              movimiento,
+                            ) {
+                              if (cliente.id != null &&
+                                  movimiento.clienteId != null) {
+                                return movimiento.clienteId == cliente.id;
+                              }
+                              return movimiento.clienteTelefono ==
+                                      cliente.telefono ||
+                                  movimiento.clienteTelefonoSnapshot ==
+                                      cliente.telefono ||
+                                  movimiento.nombreCliente == cliente.nombre;
+                            }).length;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 14),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(26),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => DetalleClienteScreen(
+                                        cliente: cliente,
+                                        historial: historial,
+                                        clientes: clientes,
+                                      ),
+                                    ),
+                                  ).then((_) {
+                                    ref
+                                        .read(clientesProvider.notifier)
+                                        .recargar();
+                                    ref
+                                        .read(movimientosProvider.notifier)
+                                        .recargar();
+                                  });
+                                },
+                                onLongPress: () {
+                                  mostrarOpcionesCliente(cliente);
+                                },
+                                child: Ink(
+                                  padding: const EdgeInsets.all(18),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(22),
+                                    border: Border.all(
+                                      color: tieneDeuda
+                                          ? const Color(0xFFF3D6D0)
+                                          : const Color(0xFFD9E8E3),
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x12000000),
+                                        blurRadius: 18,
+                                        offset: Offset(0, 10),
+                                      ),
+                                    ],
+                                  ),
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final compact =
+                                          constraints.maxWidth < 430;
+                                      final leading = Container(
+                                        width: 56,
+                                        height: 56,
                                         decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(999),
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
                                           color: tieneDeuda
                                               ? const Color(0xFFFDEAE5)
                                               : const Color(0xFFE7F3EF),
                                         ),
-                                        child: Text(
-                                          tieneDeuda ? 'Pendiente' : 'Al dia',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: tieneDeuda
-                                                ? const Color(0xFFB54708)
-                                                : const Color(0xFF1F7A6B),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        'RD\$${cliente.deuda.toStringAsFixed(2)}',
-                                        style: TextStyle(
+                                        child: Icon(
+                                          tieneDeuda
+                                              ? Icons.trending_up_rounded
+                                              : Icons.verified_rounded,
                                           color: tieneDeuda
-                                              ? const Color(0xFFB42318)
+                                              ? const Color(0xFFB54708)
                                               : const Color(0xFF1F7A6B),
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 15,
                                         ),
-                                      ),
-                                    ],
+                                      );
+                                      final info = Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              cliente.nombre,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFF17322C),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Wrap(
+                                              spacing: 8,
+                                              runSpacing: 6,
+                                              children: [
+                                                _InfoPill(
+                                                  icon: Icons.phone_outlined,
+                                                  label: cliente.telefono,
+                                                ),
+                                                _InfoPill(
+                                                  icon: Icons.history_rounded,
+                                                  label:
+                                                      '$movimientosCliente mov.',
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      final status = _ClienteStatusAmount(
+                                        tieneDeuda: tieneDeuda,
+                                        deuda: cliente.deuda,
+                                        alignEnd: !compact,
+                                      );
+                                      final detalle = IconButton.filledTonal(
+                                        tooltip: 'Ver detalle',
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  DetalleClienteScreen(
+                                                    cliente: cliente,
+                                                    historial: historial,
+                                                    clientes: clientes,
+                                                  ),
+                                            ),
+                                          ).then((_) {
+                                            ref
+                                                .read(clientesProvider.notifier)
+                                                .recargar();
+                                            ref
+                                                .read(
+                                                  movimientosProvider.notifier,
+                                                )
+                                                .recargar();
+                                          });
+                                        },
+                                        icon: const Icon(
+                                          Icons.chevron_right_rounded,
+                                        ),
+                                      );
+
+                                      if (compact) {
+                                        return Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                leading,
+                                                const SizedBox(width: 12),
+                                                info,
+                                                const SizedBox(width: 6),
+                                                detalle,
+                                              ],
+                                            ),
+                                            const SizedBox(height: 12),
+                                            status,
+                                          ],
+                                        );
+                                      }
+
+                                      return Row(
+                                        children: [
+                                          leading,
+                                          const SizedBox(width: 14),
+                                          info,
+                                          const SizedBox(width: 10),
+                                          status,
+                                          const SizedBox(width: 4),
+                                          detalle,
+                                        ],
+                                      );
+                                    },
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                            );
+                          },
+                        ),
+                      ),
               ],
             );
           },
@@ -993,10 +1462,12 @@ class _ClientesScreenState extends State<ClientesScreen> {
 }
 
 class _MetricTile extends StatelessWidget {
+  final IconData icon;
   final String label;
   final String value;
 
   const _MetricTile({
+    required this.icon,
     required this.label,
     required this.value,
   });
@@ -1004,33 +1475,186 @@ class _MetricTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(icon, color: Colors.white, size: 18),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFFDCE9E5),
-              fontSize: 13,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFDCE9E5),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _InfoPill({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6FAF8),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE4EEE9)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF66756D)),
+          const SizedBox(width: 5),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 160),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF66756D),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderActionButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  const _HeaderActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE3DED2)),
+        ),
+        child: IconButton(
+          icon: Icon(icon),
+          tooltip: tooltip,
+          onPressed: onPressed,
+        ),
+      ),
+    );
+  }
+}
+
+class _ClienteStatusAmount extends StatelessWidget {
+  final bool tieneDeuda;
+  final double deuda;
+  final bool alignEnd;
+
+  const _ClienteStatusAmount({
+    required this.tieneDeuda,
+    required this.deuda,
+    required this.alignEnd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            color: tieneDeuda
+                ? const Color(0xFFFDEAE5)
+                : const Color(0xFFE7F3EF),
+          ),
+          child: Text(
+            tieneDeuda ? 'Pendiente' : 'Al dia',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: tieneDeuda
+                  ? const Color(0xFFB54708)
+                  : const Color(0xFF1F7A6B),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
+          child: Text(
+            MoneyFormatter.formatCurrency(deuda),
+            maxLines: 1,
+            style: TextStyle(
+              color: tieneDeuda
+                  ? const Color(0xFFB42318)
+                  : const Color(0xFF1F7A6B),
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

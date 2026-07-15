@@ -53,9 +53,7 @@ class _ClienteSearchDialogState extends State<_ClienteSearchDialog> {
     final resultados = _resultados;
 
     return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(28),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       title: const Text('Buscar cliente'),
       content: SizedBox(
         width: double.maxFinite,
@@ -70,9 +68,7 @@ class _ClienteSearchDialogState extends State<_ClienteSearchDialog> {
                 prefixIcon: Icon(Icons.search_rounded),
               ),
               keyboardType: TextInputType.text,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(60),
-              ],
+              inputFormatters: [LengthLimitingTextInputFormatter(60)],
               onChanged: (value) {
                 setState(() {
                   _query = value;
@@ -93,7 +89,7 @@ class _ClienteSearchDialogState extends State<_ClienteSearchDialog> {
                   : ListView.separated(
                       shrinkWrap: true,
                       itemCount: resultados.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final cliente = resultados[index];
 

@@ -25,7 +25,8 @@ class ValidacionReporteScreen extends StatefulWidget {
   });
 
   @override
-  State<ValidacionReporteScreen> createState() => _ValidacionReporteScreenState();
+  State<ValidacionReporteScreen> createState() =>
+      _ValidacionReporteScreenState();
 }
 
 class _ValidacionReporteScreenState extends State<ValidacionReporteScreen> {
@@ -107,114 +108,117 @@ class _ValidacionReporteScreenState extends State<ValidacionReporteScreen> {
       appBar: AppBar(title: const Text('Validar reporte de Inventario')),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final contentPadding =
-              AdaptiveLayout.contentInset(constraints.maxWidth);
+          final contentPadding = AdaptiveLayout.contentInset(
+            constraints.maxWidth,
+          );
 
           return Column(
             children: [
               Expanded(
                 child: ListView.separated(
-              padding: EdgeInsets.fromLTRB(
-                contentPadding,
-                18,
-                contentPadding,
-                20,
-              ),
-              itemCount: widget.reporte.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 14),
-              itemBuilder: (context, index) {
-                final item = widget.reporte[index];
+                  padding: EdgeInsets.fromLTRB(
+                    contentPadding,
+                    18,
+                    contentPadding,
+                    20,
+                  ),
+                  itemCount: widget.reporte.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 14),
+                  itemBuilder: (context, index) {
+                    final item = widget.reporte[index];
 
-                return Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFFD9E8E3)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.nombre,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF17322C),
-                        ),
+                    return Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFD9E8E3)),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Ubicacion: ${item.ubicacion}',
-                        style: const TextStyle(color: Color(0xFF66756D)),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Cantidad auditada: ${item.cantidadAuditada}',
-                        style: const TextStyle(color: Color(0xFF66756D)),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Cantidad en sistema: ${item.stockSistema}',
-                        style: const TextStyle(color: Color(0xFF66756D)),
-                      ),
-                      const SizedBox(height: 4),
-                      item.diferencia == 0
-                          ? const Text(
-                              'Producto verificado correctamente',
-                              style: TextStyle(
-                                color: Color(0xFF1F7A6B),
-                                fontWeight: FontWeight.w700,
-                              ),
-                            )
-                          : Text(
-                              'Diferencia detectada: ${item.diferencia > 0 ? '+' : ''}${item.diferencia}',
-                              style: const TextStyle(
-                                color: Color(0xFFB42318),
-                                fontWeight: FontWeight.w700,
-                              ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.nombre,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF17322C),
                             ),
-                      const SizedBox(height: 14),
-                      TextField(
-                        controller: _controllers[index],
-                        readOnly: widget.soloReporte,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ubicacion: ${item.ubicacion}',
+                            style: const TextStyle(color: Color(0xFF66756D)),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Cantidad auditada: ${item.cantidadAuditada}',
+                            style: const TextStyle(color: Color(0xFF66756D)),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Cantidad en sistema: ${item.stockSistema}',
+                            style: const TextStyle(color: Color(0xFF66756D)),
+                          ),
+                          const SizedBox(height: 4),
+                          item.diferencia == 0
+                              ? const Text(
+                                  'Producto verificado correctamente',
+                                  style: TextStyle(
+                                    color: Color(0xFF1F7A6B),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                )
+                              : Text(
+                                  'Diferencia detectada: ${item.diferencia > 0 ? '+' : ''}${item.diferencia}',
+                                  style: const TextStyle(
+                                    color: Color(0xFFB42318),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                          const SizedBox(height: 14),
+                          TextField(
+                            controller: _controllers[index],
+                            readOnly: widget.soloReporte,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: InputDecoration(
+                              labelText: widget.soloReporte
+                                  ? 'Cantidad validada'
+                                  : 'Cantidad validada por encargado',
+                              prefixIcon: Icon(Icons.rule_folder_outlined),
+                            ),
+                          ),
                         ],
-                        decoration: InputDecoration(
-                          labelText: widget.soloReporte
-                              ? 'Cantidad validada'
-                              : 'Cantidad validada por encargado',
-                          prefixIcon: Icon(Icons.rule_folder_outlined),
-                        ),
                       ),
-                    ],
-                  ),
-                );
-              },
+                    );
+                  },
                 ),
               ),
               SafeArea(
                 top: false,
                 child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                contentPadding,
-                0,
-                contentPadding,
-                20,
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _puedeActualizar ? _actualizarInventario : null,
-                  child: Text(
-                    widget.soloReporte
-                        ? 'Aceptar reporte'
-                        : 'Actualizar productos',
+                  padding: EdgeInsets.fromLTRB(
+                    contentPadding,
+                    0,
+                    contentPadding,
+                    20,
                   ),
-                ),
-              ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _puedeActualizar
+                          ? _actualizarInventario
+                          : null,
+                      child: Text(
+                        widget.soloReporte
+                            ? 'Aceptar reporte'
+                            : 'Actualizar productos',
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],

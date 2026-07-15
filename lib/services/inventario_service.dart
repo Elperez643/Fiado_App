@@ -21,11 +21,9 @@ class InventarioService {
   final List<Producto> _productos;
   final Random _random;
 
-  InventarioService({
-    List<Producto> productos = const [],
-    Random? random,
-  })  : _productos = List<Producto>.from(productos),
-        _random = random ?? Random();
+  InventarioService({List<Producto> productos = const [], Random? random})
+    : _productos = List<Producto>.from(productos),
+      _random = random ?? Random();
 
   List<Producto> get productos => List<Producto>.unmodifiable(_productos);
 
@@ -75,15 +73,15 @@ class InventarioService {
 
     final candidatosBase = esLunes
         ? _productos
-            .where(
-              (producto) =>
-                  producto.esClave &&
-                  AuditoriaHelper.tieneDisponibilidadEnInventario(producto),
-            )
-            .toList()
+              .where(
+                (producto) =>
+                    producto.esClave &&
+                    AuditoriaHelper.tieneDisponibilidadEnInventario(producto),
+              )
+              .toList()
         : _productos
-            .where(AuditoriaHelper.tieneDisponibilidadEnInventario)
-            .toList();
+              .where(AuditoriaHelper.tieneDisponibilidadEnInventario)
+              .toList();
 
     final seleccion = _seleccionarParaAuditoria(
       candidatosBase,
@@ -109,10 +107,8 @@ class InventarioService {
 
     final candidatosNoRecientes = candidatos
         .where(
-          (producto) => !_fueAuditadoRecientemente(
-            producto,
-            referencia: referencia,
-          ),
+          (producto) =>
+              !_fueAuditadoRecientemente(producto, referencia: referencia),
         )
         .toList();
 
@@ -139,14 +135,8 @@ class InventarioService {
     final copia = List<Producto>.from(candidatos);
     copia.shuffle(_random);
     copia.sort((a, b) {
-      final prioridadA = _calcularPrioridadAuditoria(
-        a,
-        referencia: referencia,
-      );
-      final prioridadB = _calcularPrioridadAuditoria(
-        b,
-        referencia: referencia,
-      );
+      final prioridadA = _calcularPrioridadAuditoria(a, referencia: referencia);
+      final prioridadB = _calcularPrioridadAuditoria(b, referencia: referencia);
 
       return prioridadB.compareTo(prioridadA);
     });
@@ -189,10 +179,7 @@ class InventarioService {
     );
   }
 
-  List<Producto> _seleccionarAleatorios(
-    List<Producto> origen,
-    int cantidad,
-  ) {
+  List<Producto> _seleccionarAleatorios(List<Producto> origen, int cantidad) {
     if (cantidad <= 0 || origen.isEmpty) {
       return const [];
     }

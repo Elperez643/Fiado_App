@@ -26,6 +26,18 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>whatsapp</string>
+		<string>https</string>
+		<string>http</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Fiado App necesita acceso a la camara para agregar imagenes de productos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Fiado App necesita acceso a tus fotos para seleccionar imagenes de productos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Fiado App puede guardar o compartir archivos generados, como comprobantes.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

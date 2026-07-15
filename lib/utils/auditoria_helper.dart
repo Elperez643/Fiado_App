@@ -11,10 +11,7 @@ class AuditoriaHelper {
     return referencia.weekday == DateTime.monday;
   }
 
-  static bool hanPasadoMasDe24Horas(
-    DateTime fecha, {
-    DateTime? referencia,
-  }) {
+  static bool hanPasadoMasDe24Horas(DateTime fecha, {DateTime? referencia}) {
     final ahora = referencia ?? DateTime.now();
     return ahora.difference(fecha) > const Duration(hours: 24);
   }
@@ -29,7 +26,8 @@ class AuditoriaHelper {
   }
 
   static bool tieneAuditoriaCerrada(Producto producto) {
-    return producto.disponibilidadConfirmada || producto.disponibilidadCorregida;
+    return producto.disponibilidadConfirmada ||
+        producto.disponibilidadCorregida;
   }
 
   static bool tieneDisponibilidadEnInventario(Producto producto) {
@@ -58,11 +56,7 @@ class AuditoriaHelper {
     Producto producto, {
     DateTime? referencia,
   }) {
-    return fueAuditadoDentroDe(
-      producto,
-      ventanaDiaria,
-      referencia: referencia,
-    );
+    return fueAuditadoDentroDe(producto, ventanaDiaria, referencia: referencia);
   }
 
   static bool fueAuditadoEnUltimos15DiasConCierre(
@@ -76,10 +70,7 @@ class AuditoriaHelper {
     );
   }
 
-  static bool necesitaAuditoria(
-    Producto producto, {
-    DateTime? referencia,
-  }) {
+  static bool necesitaAuditoria(Producto producto, {DateTime? referencia}) {
     if (!tieneDisponibilidadEnInventario(producto)) {
       return false;
     }

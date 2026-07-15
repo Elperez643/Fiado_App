@@ -41,7 +41,9 @@ class ClientRepositoryImpl implements ClientRepository {
   @override
   Future<void> saveClient(ClientEntity client) async {
     final clients = await localDataSource.getAll();
-    final index = clients.indexWhere((item) => item.telefono == client.telefono);
+    final index = clients.indexWhere(
+      (item) => item.telefono == client.telefono,
+    );
     final legacy = client.toLegacyModel();
 
     if (index >= 0) {

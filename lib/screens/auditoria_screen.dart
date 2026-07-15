@@ -49,8 +49,7 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
   bool _hayCantidadEscrita = false;
 
   Producto get _productoActual => _productosAuditoria[_indiceActual];
-  bool get _esUltimoArticulo =>
-      _indiceActual >= _productosAuditoria.length - 1;
+  bool get _esUltimoArticulo => _indiceActual >= _productosAuditoria.length - 1;
 
   @override
   void initState() {
@@ -199,8 +198,8 @@ class _AuditoriaScreenState extends State<AuditoriaScreen> {
                           onPressed: !_hayCantidadEscrita
                               ? null
                               : _esUltimoArticulo
-                                  ? _finalizarInventario
-                                  : _siguienteArticulo,
+                              ? _finalizarInventario
+                              : _siguienteArticulo,
                           icon: Icon(
                             _esUltimoArticulo && _hayCantidadEscrita
                                 ? Icons.check_circle_outline
@@ -256,10 +255,7 @@ class _ProgresoAuditoria extends StatelessWidget {
           const SizedBox(height: 8),
           const Text(
             'La auditoria termina cuando todos los articulos tengan cantidad.',
-            style: TextStyle(
-              color: Color(0xFF66756D),
-              fontSize: 14,
-            ),
+            style: TextStyle(color: Color(0xFF66756D), fontSize: 14),
           ),
           const SizedBox(height: 14),
           ClipRRect(
@@ -321,9 +317,7 @@ class _ProductoAuditoriaCard extends StatelessWidget {
             controller: controller,
             autofocus: true,
             keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-            ],
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: const InputDecoration(
               labelText: 'Cantidad validada en stock',
               prefixIcon: Icon(Icons.fact_check_outlined),

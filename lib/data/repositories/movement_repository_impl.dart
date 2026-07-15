@@ -29,10 +29,16 @@ class MovementRepositoryImpl implements MovementRepository {
     int offset = 0,
   }) async {
     final movements = await localDataSource.getAll();
-    final filtered = movements
-        .where((movement) => movement.nombreCliente == clientId)
-        .toList()
-      ..sort((a, b) => b.fecha.compareTo(a.fecha));
+    final filtered =
+        movements
+            .where(
+              (movement) =>
+                  movement.clienteId?.toString() == clientId ||
+                  (movement.clienteId == null &&
+                      movement.nombreCliente == clientId),
+            )
+            .toList()
+          ..sort((a, b) => b.fecha.compareTo(a.fecha));
 
     return filtered
         .skip(offset)

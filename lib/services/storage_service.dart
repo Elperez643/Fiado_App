@@ -1,10 +1,16 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../data/repositories/cliente_repository.dart';
+import '../data/repositories/movimiento_repository.dart';
 import '../models/cliente.dart';
 import '../models/movimiento.dart';
 import '../models/producto.dart';
 
 class StorageService {
+  static final ClienteRepository _clienteRepository = ClienteRepository();
+  static final MovimientoRepository _movimientoRepository =
+      MovimientoRepository();
+
   static const String clientesKey = 'clientes';
   static const String historialKey = 'historial';
   static const String productosKey = 'productos';
@@ -20,33 +26,121 @@ class StorageService {
       'auditoria_productos_del_dia_fecha';
 
   // Guardar clientes
-  static Future<void> guardarClientes(List<Cliente> clientes) async {
+  static Future<void> guardarClientes(
+    List<Cliente> clientes, {
+    int? negocioId,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    List<String> lista =
-        clientes.map((c) => jsonEncode(c.toJson())).toList();
+    List<String> lista = clientes.map((c) => jsonEncode(c.toJson())).toList();
+    try {
+      if (negocioId != null) {
+        await _clienteRepository.guardarClientes(
+          clientes,
+          negocioId: negocioId,
+        );
+      }
+    } catch (_) {
+      // Si SQLite no esta disponible en una plataforma de prueba, el respaldo
+      // legacy conserva el funcionamiento offline mientras se completa la
+      // migracion total.
+    }
+
+    // SharedPreferences se mantiene temporalmente como respaldo durante la
+    // migracion gradual. Cuando todas las pantallas usen repositorios SQLite,
+    // este espejo puede retirarse con una migracion controlada.
     await prefs.setStringList(clientesKey, lista);
   }
 
   // Cargar clientes
-  static Future<List<Cliente>> cargarClientes() async {
+  static Future<List<Cliente>> cargarClientes({int? negocioId}) async {
+    try {
+      if (negocioId != null) {
+        final sqliteClientes = await _clienteRepository.obtenerClientes(
+          negocioId: negocioId,
+          limit: 10000,
+        );
+        if (sqliteClientes.isNotEmpty) {
+          return sqliteClientes;
+        }
+      }
+    } catch (_) {
+      // Continua hacia SharedPreferences para mantener compatibilidad gradual.
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getStringList(clientesKey) ?? [];
-    return data.map((e) => Cliente.fromJson(jsonDecode(e))).toList();
+    final clientes = data.map((e) => Cliente.fromJson(jsonDecode(e))).toList();
+    if (clientes.isNotEmpty) {
+      try {
+        if (negocioId != null) {
+          await _clienteRepository.guardarClientes(
+            clientes,
+            negocioId: negocioId,
+          );
+        }
+      } catch (_) {
+        // La siembra SQLite se reintentara en la proxima carga.
+      }
+    }
+    return clientes;
   }
 
   // Guardar historial
-  static Future<void> guardarHistorial(List<Movimiento> historial) async {
+  static Future<void> guardarHistorial(
+    List<Movimiento> historial, {
+    int? negocioId,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    List<String> lista =
-        historial.map((m) => jsonEncode(m.toJson())).toList();
+    List<String> lista = historial.map((m) => jsonEncode(m.toJson())).toList();
+    try {
+      if (negocioId != null) {
+        await _movimientoRepository.guardarMovimientos(
+          historial,
+          negocioId: negocioId,
+        );
+      }
+    } catch (_) {
+      // El historial legacy sigue activo hasta retirar SharedPreferences.
+    }
+
+    // Espejo legacy para permitir rollback y convivencia durante la migracion.
     await prefs.setStringList(historialKey, lista);
   }
 
   // Cargar historial
-  static Future<List<Movimiento>> cargarHistorial() async {
+  static Future<List<Movimiento>> cargarHistorial({int? negocioId}) async {
+    try {
+      if (negocioId != null) {
+        final sqliteHistorial = await _movimientoRepository.obtenerMovimientos(
+          negocioId: negocioId,
+          limit: 10000,
+        );
+        if (sqliteHistorial.isNotEmpty) {
+          return sqliteHistorial;
+        }
+      }
+    } catch (_) {
+      // Continua hacia SharedPreferences para mantener compatibilidad gradual.
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getStringList(historialKey) ?? [];
-    return data.map((e) => Movimiento.fromJson(jsonDecode(e))).toList();
+    final historial = data
+        .map((e) => Movimiento.fromJson(jsonDecode(e)))
+        .toList();
+    if (historial.isNotEmpty) {
+      try {
+        if (negocioId != null) {
+          await _movimientoRepository.guardarMovimientos(
+            historial,
+            negocioId: negocioId,
+          );
+        }
+      } catch (_) {
+        // La siembra SQLite se reintentara en la proxima carga.
+      }
+    }
+    return historial;
   }
 
   static Future<void> guardarProductos(List<Producto> productos) async {

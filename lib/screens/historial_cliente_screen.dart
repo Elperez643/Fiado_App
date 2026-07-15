@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/utils/money_formatter.dart';
 import '../models/cliente.dart';
 import '../models/movimiento.dart';
 import '../widgets/adaptive_layout.dart';
@@ -16,10 +17,14 @@ class HistorialClienteScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final movimientos = historial
-        .where((movimiento) => movimiento.nombreCliente == cliente.nombre)
-        .toList()
-      ..sort((a, b) => b.fecha.compareTo(a.fecha));
+    final movimientos = historial.where((movimiento) {
+      if (cliente.id != null && movimiento.clienteId != null) {
+        return movimiento.clienteId == cliente.id;
+      }
+      return movimiento.clienteTelefono == cliente.telefono ||
+          movimiento.clienteTelefonoSnapshot == cliente.telefono ||
+          movimiento.nombreCliente == cliente.nombre;
+    }).toList()..sort((a, b) => b.fecha.compareTo(a.fecha));
 
     final deudaTotal = movimientos.fold<double>(0, (total, movimiento) {
       if (movimiento.tipo == 'pago') {
@@ -34,8 +39,9 @@ class HistorialClienteScreen extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final contentPadding =
-                AdaptiveLayout.contentInset(constraints.maxWidth);
+            final contentPadding = AdaptiveLayout.contentInset(
+              constraints.maxWidth,
+            );
 
             return ListView.separated(
               padding: EdgeInsets.fromLTRB(
@@ -45,7 +51,7 @@ class HistorialClienteScreen extends StatelessWidget {
                 28,
               ),
               itemCount: movimientos.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return _ResumenCliente(
@@ -98,7 +104,7 @@ class _ResumenCliente extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'RD\$${balance.toStringAsFixed(2)}',
+            MoneyFormatter.formatCurrency(balance),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -134,9 +140,10 @@ class _MovimientoTile extends StatelessWidget {
           color: esPago ? const Color(0xFFD9E8E3) : const Color(0xFFF3D6D0),
         ),
       ),
-      child: Row(
-        children: [
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 340;
+          final leading = Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
@@ -147,14 +154,15 @@ class _MovimientoTile extends StatelessWidget {
               esPago ? Icons.payments_outlined : Icons.add_card_outlined,
               color: esPago ? const Color(0xFF1F7A6B) : const Color(0xFFB54708),
             ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
+          );
+          final info = Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   esPago ? 'Pago registrado' : 'Deuda agregada',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF17322C),
@@ -167,15 +175,43 @@ class _MovimientoTile extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-          Text(
-            'RD\$${movimiento.monto.toStringAsFixed(2)}',
-            style: TextStyle(
-              color: esPago ? const Color(0xFF1F7A6B) : const Color(0xFFB42318),
-              fontWeight: FontWeight.w800,
+          );
+          final amount = FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: compact ? Alignment.centerLeft : Alignment.centerRight,
+            child: Text(
+              MoneyFormatter.formatCurrency(movimiento.monto),
+              maxLines: 1,
+              style: TextStyle(
+                color: esPago
+                    ? const Color(0xFF1F7A6B)
+                    : const Color(0xFFB42318),
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-        ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [leading, const SizedBox(width: 12), info]),
+                const SizedBox(height: 10),
+                amount,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              leading,
+              const SizedBox(width: 14),
+              info,
+              const SizedBox(width: 10),
+              amount,
+            ],
+          );
+        },
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'money_formatter.dart';
+
 class CurrencyFormatter {
-  static String rd(double value) => 'RD\$${value.toStringAsFixed(2)}';
+  static String rd(num value) => MoneyFormatter.formatCurrency(value);
 }

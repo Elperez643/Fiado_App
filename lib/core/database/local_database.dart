@@ -1,4 +1,8 @@
+import 'package:sqflite/sqflite.dart';
+
 abstract class LocalDatabase {
+  Future<Database> get database;
+
   Future<void> initialize();
   Future<void> close();
 

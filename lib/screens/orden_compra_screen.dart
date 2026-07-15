@@ -6,10 +6,7 @@ import '../widgets/adaptive_layout.dart';
 class OrdenCompraScreen extends StatelessWidget {
   final List<Producto> productos;
 
-  const OrdenCompraScreen({
-    super.key,
-    required this.productos,
-  });
+  const OrdenCompraScreen({super.key, required this.productos});
 
   static const int minimoUnidades = 10;
   static const int minimoLibras = 70;
@@ -42,25 +39,27 @@ class OrdenCompraScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final productosReposicion = productos
-        .where(requiereReposicion)
-        .toList(growable: false)
-      ..sort((a, b) {
-        final prioridad = prioridadDemanda(a).compareTo(prioridadDemanda(b));
-        if (prioridad != 0) {
-          return prioridad;
-        }
+    final productosReposicion =
+        productos.where(requiereReposicion).toList(growable: false)..sort((
+          a,
+          b,
+        ) {
+          final prioridad = prioridadDemanda(a).compareTo(prioridadDemanda(b));
+          if (prioridad != 0) {
+            return prioridad;
+          }
 
-        return a.cantidad.compareTo(b.cantidad);
-      });
+          return a.cantidad.compareTo(b.cantidad);
+        });
 
     return Scaffold(
       appBar: AppBar(title: const Text('Orden de compra')),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final contentPadding =
-                AdaptiveLayout.contentInset(constraints.maxWidth);
+            final contentPadding = AdaptiveLayout.contentInset(
+              constraints.maxWidth,
+            );
 
             if (productosReposicion.isEmpty) {
               return Center(
@@ -106,7 +105,7 @@ class OrdenCompraScreen extends StatelessWidget {
                 28,
               ),
               itemCount: productosReposicion.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(height: 14),
+              separatorBuilder: (_, _) => const SizedBox(height: 14),
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return _ResumenOrden(total: productosReposicion.length);
@@ -149,6 +148,8 @@ class OrdenCompraScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   producto.nombre,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
@@ -158,6 +159,8 @@ class OrdenCompraScreen extends StatelessWidget {
                                 const SizedBox(height: 6),
                                 Text(
                                   producto.ubicacion,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     color: Color(0xFF66756D),
                                   ),
@@ -176,29 +179,46 @@ class OrdenCompraScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _OrdenMetric(
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final compact = constraints.maxWidth < 360;
+                          final metrics = [
+                            _OrdenMetric(
                               label: 'Sistema',
                               value: '${producto.cantidad} $unidad',
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _OrdenMetric(
+                            _OrdenMetric(
                               label: 'Minimo',
                               value: '$minimo $unidad',
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _OrdenMetric(
+                            _OrdenMetric(
                               label: 'Reponer',
                               value: '${sugerido <= 0 ? 1 : sugerido} $unidad',
                             ),
-                          ),
-                        ],
+                          ];
+
+                          if (compact) {
+                            return Column(
+                              children: [
+                                metrics[0],
+                                const SizedBox(height: 8),
+                                metrics[1],
+                                const SizedBox(height: 8),
+                                metrics[2],
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [
+                              Expanded(child: metrics[0]),
+                              const SizedBox(width: 10),
+                              Expanded(child: metrics[1]),
+                              const SizedBox(width: 10),
+                              Expanded(child: metrics[2]),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -231,6 +251,8 @@ class _ResumenOrden extends StatelessWidget {
       ),
       child: Text(
         '$total articulos requieren reposicion',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 20,
@@ -245,10 +267,7 @@ class _OrdenMetric extends StatelessWidget {
   final String label;
   final String value;
 
-  const _OrdenMetric({
-    required this.label,
-    required this.value,
-  });
+  const _OrdenMetric({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -263,6 +282,8 @@ class _OrdenMetric extends StatelessWidget {
         children: [
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Color(0xFF17322C),
               fontWeight: FontWeight.w800,
@@ -271,10 +292,9 @@ class _OrdenMetric extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
-              color: Color(0xFF66756D),
-              fontSize: 12,
-            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Color(0xFF66756D), fontSize: 12),
           ),
         ],
       ),
