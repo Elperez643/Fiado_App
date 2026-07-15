@@ -35,16 +35,26 @@ class _MemoryLocalDatabase implements LocalDatabase {
 }
 
 class _NoopApiClient extends ApiClient {
+  final Map<String, ApiException> failures;
+
   _NoopApiClient({
     required super.authRepository,
     required super.sharedPreferences,
+    this.failures = const {},
   }) : super(httpClient: http.Client());
+
+  @override
+  Future<bool> hasUsableToken() async => true;
 
   @override
   Future<Map<String, dynamic>> post(
     String path, {
     Map<String, Object?>? body,
   }) async {
+    final failure = failures[path];
+    if (failure != null) {
+      throw failure;
+    }
     if (path.endsWith('/push')) {
       return {
         'module': path.split('/')[2],
@@ -183,6 +193,87 @@ void main() {
     expect(status.state, NewSyncUiState.savedOnThisDevice);
     expect(status.canShowAllUpdated, isFalse);
   });
+
+  test(
+    'modulo V2 no implementado conserva outbox sin marcar synced',
+    () async {
+      final now = DateTime.utc(2026, 6, 22, 10);
+      await db.insert(DatabaseSchema.usuariosTable, {
+        'id': 1,
+        'nombre': 'Negocio Sync',
+        'telefono': '5550001',
+        'tipo_usuario': 'negocio',
+        'password_hash': 'hash-local',
+        'activo': 1,
+        'created_at': now.toIso8601String(),
+        'updated_at': now.toIso8601String(),
+        'sync_status': 'synced',
+      });
+      await db.insert(DatabaseSchema.sesionesTable, {
+        'usuario_id': 1,
+        'started_at': now.toIso8601String(),
+        'last_active_at': now.toIso8601String(),
+        'is_active': 1,
+        'jwt_token': 'test-token',
+      });
+      final authRepository = AuthRepository(
+        databaseHelper: localDatabase,
+        syncQueueRepository: SyncQueueRepository(databaseHelper: localDatabase),
+      );
+      final engine = SyncEngine(
+        outboxRepository: outboxRepository,
+        stateRepository: stateRepository,
+        deviceIdentityService: SyncDeviceIdentityService(
+          sharedPreferences: SharedPreferences.getInstance(),
+        ),
+        apiClient: _NoopApiClient(
+          authRepository: authRepository,
+          sharedPreferences: SharedPreferences.getInstance(),
+          failures: const {
+            '/api/sync/movements/push': ApiException(
+              'No se pudo actualizar.',
+              statusCode: 501,
+            ),
+          },
+        ),
+        authRepository: authRepository,
+      );
+
+      await outboxRepository.enqueue(
+        SyncOutboxItem.pending(
+          businessId: '1',
+          module: 'movements',
+          entityType: 'movement',
+          entityUuid: 'movement-local-1',
+          operation: 'create',
+          payload: const {'amount': 10, 'kind': 'charge'},
+          now: now,
+        ),
+      );
+
+      final result = await engine.syncNow(module: 'movements');
+      final rows = await db.query(
+        DatabaseSchema.syncOutboxTable,
+        where: 'module = ?',
+        whereArgs: ['movements'],
+      );
+      final pending = await outboxRepository.pending(module: 'movements');
+      final status = await engine.recomputeStatus();
+
+      expect(result.error, contains('No se pudo actualizar.'));
+      expect(rows, hasLength(1));
+      expect(rows.single['status'], isNot(SyncOutboxItem.statusSynced));
+      expect(rows.single['status'], SyncOutboxItem.statusFailed);
+      expect(
+        rows.single['last_error'],
+        contains('No se pudo actualizar.'),
+      );
+      expect(pending, hasLength(1));
+      expect(pending.single.status, SyncOutboxItem.statusFailed);
+      expect(status.canShowAllUpdated, isFalse);
+      expect(status.state, NewSyncUiState.error);
+    },
+  );
 
   test('error historico sin pendientes no bloquea Todo actualizado', () async {
     await stateRepository.upsert(
