@@ -1,0 +1,327 @@
+ M ARCHITECTURE.md
+ M README.md
+ M android/app/src/debug/AndroidManifest.xml
+ M android/app/src/main/AndroidManifest.xml
+ M android/app/src/profile/AndroidManifest.xml
+ m dist
+ M ios/Runner/Info.plist
+ M lib/core/database/database_schema.dart
+ M lib/core/database/local_database.dart
+ M lib/core/theme/app_theme.dart
+ M lib/core/utils/currency_formatter.dart
+ M lib/data/datasources/product_local_datasource.dart
+ M lib/data/models/cliente_mapper.dart
+ M lib/data/models/movimiento_mapper.dart
+ M lib/data/models/producto_mapper.dart
+ M lib/data/repositories/client_repository_impl.dart
+ M lib/data/repositories/movement_repository_impl.dart
+ M lib/domain/entities/product_entity.dart
+ M lib/domain/repositories/movement_repository.dart
+ M lib/main.dart
+ M lib/models/cliente.dart
+ M lib/models/movimiento.dart
+ M lib/models/producto.dart
+ M lib/screens/auditoria_screen.dart
+ M lib/screens/clientes_screen.dart
+ M lib/screens/detalle_cliente_screen.dart
+ M lib/screens/historial_cliente_screen.dart
+ M lib/screens/historial_screen.dart
+ M lib/screens/inventario_screen.dart
+ M lib/screens/login_screen.dart
+ M lib/screens/orden_compra_screen.dart
+ M lib/screens/personal_portal_screen.dart
+ M lib/screens/principal_screen.dart
+ M lib/screens/splash_screen.dart
+ M lib/screens/validacion_reporte_screen.dart
+ M lib/services/inventario_service.dart
+ M lib/services/storage_service.dart
+ M lib/utils/auditoria_helper.dart
+ M lib/widgets/cliente_search_dialog.dart
+ M linux/flutter/generated_plugin_registrant.cc
+ M linux/flutter/generated_plugins.cmake
+ M macos/Flutter/GeneratedPluginRegistrant.swift
+ M pubspec.lock
+ M pubspec.yaml
+ M test/widget_test.dart
+ M windows/flutter/generated_plugin_registrant.cc
+ M windows/flutter/generated_plugins.cmake
+?? AGREGAR_DEUDA_ARTICULOS_QA.md
+?? API_CONTRACTS.md
+?? AUTH_STARTUP_AUDIT_REPORT.md
+?? AUTH_STARTUP_RECOVERY_QA.md
+?? AZUL_PAYMENT_ARCHITECTURE.md
+?? AZUL_PAYMENT_QA.md
+?? BARCODE_INVENTORY_QA.md
+?? BILLABLE_PRODUCTS_REGRESSION_QA.md
+?? BUG_FIX_CANDIDATES.md
+?? BUSINESS_COPILOT.md
+?? BUSINESS_COPILOT_QA.md
+?? CLIENT_IDENTITY_INTEGRITY_AUDIT.md
+?? CLIENT_IDENTITY_INTEGRITY_QA.md
+?? CLIENT_SCORE_QA_CHECKLIST.md
+?? CLOUD_AUTH_AUTO_LOGIN_QA.md
+?? CLOUD_SYNC_QA_CHECKLIST.md
+?? COLLECTIONS_INTELLIGENCE.md
+?? COLLECTIONS_INTELLIGENCE_QA.md
+?? CORE_FLOW_REGRESSION_REPORT.md
+?? CRASH_DIAGNOSTICS_QA.md
+?? DEBT_ITEMS_RECEIPT_QA.md
+?? DEBT_ITEM_SELECTOR_QA.md
+?? DEBT_TOTAL_FIELD_QA.md
+?? FULL_APP_BUG_TRACKER.md
+?? FULL_APP_QA_REPORT.md
+?? GLOBAL_BUG_TRACKER.md
+?? GLOBAL_STABILITY_AUDIT_REPORT.md
+?? INVENTORY_CREATE_QA.md
+?? INVENTORY_INTELLIGENCE.md
+?? INVENTORY_INTELLIGENCE_QA_RESULTS.md
+?? INVENTORY_ISOLATION_AUDIT.md
+?? INVENTORY_ISOLATION_QA.md
+?? IOS_COMPATIBILITY.md
+?? IOS_QA_CHECKLIST.md
+?? LOCAL_RESET_QA.md
+?? LOGIN_WHITE_SCREEN_QA.md
+?? MIGRATION_PLAN.md
+?? MOBILE_QA_CHECKLIST.md
+?? MONEY_FORMATTING_QA.md
+?? MULTI_BUSINESS_ISOLATION_AUDIT.md
+?? Microsoft.AspNetCore.Connections.AddressInUseException
+?? OFFLINE_FIRST_FINAL_QA.md
+?? OFFLINE_FIRST_QA.md
+?? OFFLINE_FIRST_RECOVERY_REPORT.md
+?? ONBOARDING_V2.md
+?? ONBOARDING_V2_QA.md
+?? PERFORMANCE_REPORT.md
+?? PERSONAL_DEBT_GUIDANCE.md
+?? PERSONAL_DEBT_GUIDANCE_QA.md
+?? PLATFORM_BUILD_REPORT.md
+?? PRODUCTION_READINESS_CHECKLIST.md
+?? QA_PHASE_REPORT.md
+?? SECURITY_AUDIT_REPORT.md
+?? SECURITY_HARDENING_CHECKLIST.md
+?? SESSION_SECURITY.md
+?? STAGING_LOCAL.md
+?? STARTUP_LOGIN_FINAL_FIX_QA.md
+?? STARTUP_RUNTIME_FIX_REPORT.md
+?? STRESS_TEST_PLAN.md
+?? STRESS_TEST_RESULTS.md
+?? STRIPE_TEST_SETUP.md
+?? SUBSCRIPTION_PRICING.md
+?? SUBSCRIPTION_TRIAL_ARCHITECTURE.md
+?? SUBSCRIPTION_TRIAL_AZUL_QA.md
+?? SUBSCRIPTION_TRIAL_LIVE_QA_REPORT.md
+?? SUBSCRIPTION_TRIAL_QA.md
+?? SYNC_INTEGRITY_AUDIT_REPORT.md
+?? SYNC_QUEUE_AUDIT_REPORT.md
+?? SYNC_USER_FLOW_QA.md
+?? SYNC_UX_SIMPLIFICATION.md
+?? System.Net.Sockets.SocketException
+?? UI_DESIGN_SYSTEM.md
+?? WEB_CLOUD_FIRST_QA.md
+?? WEB_COMPATIBILITY.md
+?? WHATSAPP_CAMPAIGNS.md
+?? backend/DB_SETUP.md
+?? backend/FiadoApp.Backend.sln
+?? backend/README_BACKEND.md
+?? backend/src/FiadoApp.Api/Controllers/
+?? backend/src/FiadoApp.Api/DTOs/
+?? backend/src/FiadoApp.Api/Data/
+?? backend/src/FiadoApp.Api/Entities/
+?? backend/src/FiadoApp.Api/FiadoApp.Api.csproj
+?? backend/src/FiadoApp.Api/FiadoApp.Api.http
+?? backend/src/FiadoApp.Api/Migrations/
+?? backend/src/FiadoApp.Api/Payments/
+?? backend/src/FiadoApp.Api/Program.cs
+?? backend/src/FiadoApp.Api/Properties/
+?? backend/src/FiadoApp.Api/Services/
+?? backend/src/FiadoApp.Api/Subscriptions/
+?? backend/src/FiadoApp.Api/appsettings.json
+?? cd
+?? copy
+?? dart
+?? docs/sync_data_contract_matrix.md
+?? docs/version-control/repository-normalization/
+?? dotnet
+?? flutter
+?? lib/business_copilot/
+?? lib/collections_intelligence/
+?? lib/core/api/
+?? lib/core/config/
+?? lib/core/constants/subscription_plans.dart
+?? lib/core/database/database_helper.dart
+?? lib/core/database/database_platform.dart
+?? lib/core/database/database_platform_io.dart
+?? lib/core/database/database_platform_stub.dart
+?? lib/core/diagnostics/
+?? lib/core/permissions/
+?? lib/core/security/
+?? lib/core/session/
+?? lib/core/sync/
+?? lib/core/theme/app_colors.dart
+?? lib/core/theme/app_gradients.dart
+?? lib/core/theme/app_motion.dart
+?? lib/core/theme/app_shadows.dart
+?? lib/core/utils/money_formatter.dart
+?? lib/credit_scoring/
+?? lib/data/contracts/
+?? lib/data/models/auditoria_item_sqlite_model.dart
+?? lib/data/models/auditoria_sqlite_model.dart
+?? lib/data/models/billable_product.dart
+?? lib/data/models/client_score_sync_model.dart
+?? lib/data/models/cliente_sqlite_model.dart
+?? lib/data/models/comprobante_sqlite_model.dart
+?? lib/data/models/credito_ciclo_movimiento_sqlite_model.dart
+?? lib/data/models/credito_ciclo_sqlite_model.dart
+?? lib/data/models/credito_excepcion_sqlite_model.dart
+?? lib/data/models/credito_recordatorio_sqlite_model.dart
+?? lib/data/models/deuda_item_sqlite_model.dart
+?? lib/data/models/inventory_product_metric_sqlite_model.dart
+?? lib/data/models/movimiento_sqlite_model.dart
+?? lib/data/models/new_sync_status.dart
+?? lib/data/models/pago_sqlite_model.dart
+?? lib/data/models/payment_method_model.dart
+?? lib/data/models/payment_transaction_model.dart
+?? lib/data/models/product_optimized_image_result.dart
+?? lib/data/models/producto_imagen_sqlite_model.dart
+?? lib/data/models/producto_sqlite_model.dart
+?? lib/data/models/rendered_status_image.dart
+?? lib/data/models/session_sqlite_model.dart
+?? lib/data/models/solicitud_autorizacion_sqlite_model.dart
+?? lib/data/models/subscription_payment_model.dart
+?? lib/data/models/subscription_sqlite_model.dart
+?? lib/data/models/sync_outbox_item.dart
+?? lib/data/models/sync_queue_item_model.dart
+?? lib/data/models/sync_state_model.dart
+?? lib/data/models/sync_user_status.dart
+?? lib/data/models/user_onboarding_sqlite_model.dart
+?? lib/data/models/usuario_sqlite_model.dart
+?? lib/data/models/whatsapp_campaign_publication.dart
+?? lib/data/repositories/auditoria_repository.dart
+?? lib/data/repositories/auth_repository.dart
+?? lib/data/repositories/billable_product_query.dart
+?? lib/data/repositories/cliente_repository.dart
+?? lib/data/repositories/comprobante_repository.dart
+?? lib/data/repositories/credito_ciclo_repository.dart
+?? lib/data/repositories/deuda_item_repository.dart
+?? lib/data/repositories/inventory_product_metrics_repository.dart
+?? lib/data/repositories/movimiento_repository.dart
+?? lib/data/repositories/producto_imagen_repository.dart
+?? lib/data/repositories/producto_repository.dart
+?? lib/data/repositories/solicitud_autorizacion_repository.dart
+?? lib/data/repositories/subscription_repository.dart
+?? lib/data/repositories/sync_diagnostics_repository.dart
+?? lib/data/repositories/sync_outbox_repository.dart
+?? lib/data/repositories/sync_queue_repository.dart
+?? lib/data/repositories/sync_state_repository.dart
+?? lib/data/repositories/sync_status_diagnostics_repository.dart
+?? lib/data/repositories/user_onboarding_repository.dart
+?? lib/data/repositories/whatsapp_campaign_repository.dart
+?? lib/data/services/api_client.dart
+?? lib/data/services/auto_sync_service.dart
+?? lib/data/services/barcode_product_lookup_service.dart
+?? lib/data/services/client_sync_adapter.dart
+?? lib/data/services/cloud_audit_sync_service.dart
+?? lib/data/services/cloud_auth_service.dart
+?? lib/data/services/cloud_authorization_request_sync_service.dart
+?? lib/data/services/cloud_client_score_sync_service.dart
+?? lib/data/services/cloud_client_sync_service.dart
+?? lib/data/services/cloud_credit_cycle_sync_service.dart
+?? lib/data/services/cloud_financial_sync_helpers.dart
+?? lib/data/services/cloud_movement_sync_service.dart
+?? lib/data/services/cloud_product_sync_service.dart
+?? lib/data/services/cloud_receipt_sync_service.dart
+?? lib/data/services/cloud_whatsapp_campaign_sync_service.dart
+?? lib/data/services/collection_message_service.dart
+?? lib/data/services/comprobante_pdf_service.dart
+?? lib/data/services/credito_mensaje_service.dart
+?? lib/data/services/inventory_backfill_service.dart
+?? lib/data/services/inventory_image_sync_diagnostics.dart
+?? lib/data/services/inventory_media_sync_service.dart
+?? lib/data/services/inventory_sync_adapter.dart
+?? lib/data/services/legacy_sync_queue_diagnostics.dart
+?? lib/data/services/payment_service.dart
+?? lib/data/services/product_image_optimizer_service.dart
+?? lib/data/services/product_image_optimizer_service_io.dart
+?? lib/data/services/product_image_optimizer_service_stub.dart
+?? lib/data/services/subscription_billing_service.dart
+?? lib/data/services/sync_device_identity_service.dart
+?? lib/data/services/sync_endpoint_registry.dart
+?? lib/data/services/sync_engine.dart
+?? lib/data/services/sync_module_adapter.dart
+?? lib/data/services/sync_scheduler.dart
+?? lib/data/services/sync_service.dart
+?? lib/data/services/whatsapp_status_campaign_service.dart
+?? lib/data/services/whatsapp_status_image_renderer.dart
+?? lib/data/services/whatsapp_status_image_renderer_io.dart
+?? lib/data/services/whatsapp_status_image_renderer_stub.dart
+?? lib/inventory_intelligence/
+?? lib/personal_debt_guidance/
+?? lib/presentation/providers/auth_providers.dart
+?? lib/presentation/providers/fiado_data_providers.dart
+?? lib/presentation/providers/sync_providers.dart
+?? lib/screens/auditoria_reportes_screen.dart
+?? lib/screens/backend_settings_screen.dart
+?? lib/screens/barcode_scanner_screen.dart
+?? lib/screens/billing_history_screen.dart
+?? lib/screens/business_copilot_screen.dart
+?? lib/screens/client_score_report_screen.dart
+?? lib/screens/client_score_screen.dart
+?? lib/screens/colaborador_dashboard_screen.dart
+?? lib/screens/collections_intelligence_screen.dart
+?? lib/screens/comprobante_screen.dart
+?? lib/screens/create_whatsapp_campaign_screen.dart
+?? lib/screens/cuentas_por_cobrar_screen.dart
+?? lib/screens/gestionar_colaboradores_screen.dart
+?? lib/screens/inventory_intelligence_screen.dart
+?? lib/screens/mis_solicitudes_screen.dart
+?? lib/screens/onboarding_assistant_screen.dart
+?? lib/screens/payment_methods_screen.dart
+?? lib/screens/personal_debt_reminders_screen.dart
+?? lib/screens/register_screen.dart
+?? lib/screens/solicitudes_pendientes_screen.dart
+?? lib/screens/startup_diagnostics_screen.dart
+?? lib/screens/subscription_screen.dart
+?? lib/screens/subscription_status_screen.dart
+?? lib/screens/sync_advanced_settings_screen.dart
+?? lib/screens/sync_diagnostics_screen.dart
+?? lib/screens/sync_status_screen.dart
+?? lib/screens/whatsapp_status_preview_screen.dart
+?? lib/screens/widgets/
+?? lib/widgets/animated_dashboard_card.dart
+?? lib/widgets/app_error_state.dart
+?? lib/widgets/app_navigation_drawer.dart
+?? lib/widgets/dashboard_kpi_card.dart
+?? lib/widgets/dashboard_news_card.dart
+?? lib/widgets/dashboard_section_header.dart
+?? lib/widgets/executive_kpi_card.dart
+?? lib/widgets/fiado_action_tile.dart
+?? lib/widgets/fiado_empty_state.dart
+?? lib/widgets/fiado_gradient_card.dart
+?? lib/widgets/fiado_loading_state.dart
+?? lib/widgets/product_image_thumbnail.dart
+?? lib/widgets/product_image_thumbnail_io.dart
+?? lib/widgets/product_image_thumbnail_stub.dart
+?? lib/widgets/rendered_status_image_view.dart
+?? lib/widgets/rendered_status_image_view_io.dart
+?? lib/widgets/rendered_status_image_view_stub.dart
+?? lib/widgets/sync_cloud_indicator.dart
+?? set
+?? test/api_client_session_replaced_test.dart
+?? test/api_environment_config_test.dart
+?? test/auth_repository_test.dart
+?? test/client_sync_v2_test.dart
+?? test/cloud_auth_service_test.dart
+?? test/cloud_client_initial_restore_test.dart
+?? test/credit_cycle_sync_test.dart
+?? test/data_contract_registry_test.dart
+?? test/database_helper_test.dart
+?? test/inventory_sync_v2_test.dart
+?? test/money_formatter_test.dart
+?? test/regression/
+?? test/session_replaced_status_test.dart
+?? test/sync_diagnostics_test.dart
+?? test/sync_endpoint_registry_test.dart
+?? test/sync_engine_base_test.dart
+?? test/user_friendly_sync_test.dart
+?? test/whatsapp_campaign_sync_test.dart
+?? tools/
