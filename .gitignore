@@ -84,9 +84,11 @@ TestResults/
 qa_data/*.db
 
 # Local logs, temporary files, and Codex working output
+.local-backups/
 logs/
 tmp/
 temp/
+.local-backups/
 *.tmp
 *.bak
 *.cache
@@ -136,6 +138,7 @@ dist/**/*.wasm
 dist/**/*.so
 dist/web/
 dist/windows/
+dist/.git/
 
 # Accidental shell/output files observed during repository normalization
 /cd

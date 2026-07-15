@@ -79,3 +79,16 @@ Option 3: Remove `dist` from root tracking and keep local ignored artifacts only
 ## Recommendation
 
 Prefer Option 2 or Option 3 after backup. Do not resolve automatically in this phase. First complete secrets review, backup branch creation, and explicit user approval.
+
+## Resolution Update
+
+Decision approved by the user on 2026-07-15: remove the broken gitlink and normalize `dist` as a regular root folder for selected documentation only.
+
+Confirmed actions:
+
+- Backed up nested Git metadata to `.local-backups\dist-git-metadata-2026-07-15`.
+- Removed the root gitlink from the index with `git rm --cached dist`.
+- Moved the live nested metadata from `dist\.git` to `.local-backups\dist-git-metadata-2026-07-15-live-removed`.
+- Preserved physical `dist` files.
+- Selected only manual/documentation files from `dist` for root versioning.
+- Kept generated APKs and build folders ignored.
