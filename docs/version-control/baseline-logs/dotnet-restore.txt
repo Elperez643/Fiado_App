@@ -1,0 +1,6 @@
+START: 2026-07-15T15:26:41.9407982-04:00
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+END: 2026-07-15T15:26:44.0110646-04:00
+DURATION_SECONDS: 2
+EXIT_CODE: 0

@@ -1,32 +1,45 @@
 # Validation Summary - 2026-07-15
 
-Scope: Git/governance/agents baseline only. No functional code changes were made for this task.
+Scope: Git/governance/agents baseline, repository normalization, and allowed backend validation.
 
-Commands attempted:
+## Current Git Baseline
 
-- `dart --version`
-- `flutter --version`
-- `dotnet --version`
+- Branch: `master`
+- Backup branch: `backup/pre-normalization-2026-07-15`
+- Remote tracking: `origin/master`
+- Current state after repository normalization: clean working tree, local branch ahead of `origin/master`.
 
-Result:
+## Repository Normalization Results
 
-- `NO VALIDADO`: the command probes were interrupted before completion during the session.
-- No `dart format`, `flutter analyze`, `flutter test`, `dotnet build`, or `dotnet test` result is claimed as passed.
+- `dist` broken gitlink resolved.
+- Nested `dist\.git` metadata backed up under `.local-backups/`.
+- Selected `dist` manuals were preserved as normal root repository files.
+- Generated APKs, `dist/web/`, and `dist/windows/` remain ignored.
+- `git submodule status`: `APROBADO`, exit code `0`.
 
-Reason:
+## .NET Validation Results
 
-- The repository already had many pending functional changes before this task.
-- Tool probes were interrupted while trying to avoid a long-running or blocked validation path.
+- `dotnet --version`: `10.0.201`.
+- `dotnet restore backend\FiadoApp.Backend.sln`: `APROBADO`, exit code `0`, duration `2s`.
+- `dotnet build backend\FiadoApp.Backend.sln --no-restore`: `APROBADO`, exit code `0`, duration `12s`, `0 Warning(s)`, `0 Error(s)`.
+- `dotnet test backend\FiadoApp.Backend.sln --no-build`: `APROBADO`, exit code `0`, duration `1s`; no test output was emitted, which indicates no .NET test projects were discovered in the solution.
 
-Required follow-up:
+Logs:
 
-- Run validations in a dedicated pass after the repository baseline commit:
-  - `dart format --output=none --set-exit-if-changed .`
-  - `flutter analyze`
-  - `flutter test`
-  - `dotnet build backend/FiadoApp.Backend.sln`
-  - `dotnet test backend/FiadoApp.Backend.sln`
+- `docs/version-control/baseline-logs/dotnet-restore.txt`
+- `docs/version-control/baseline-logs/dotnet-build.txt`
+- `docs/version-control/baseline-logs/dotnet-test.txt`
 
-Verdict:
+## Dart And Flutter Validation Results
 
-- Baseline validation evidence exists, but functional validation is `NO VALIDADO`.
+Policy update: Codex must not directly execute commands that start with `dart` or `flutter`.
+
+- `dart format --output=none --set-exit-if-changed .`: `NO VALIDADO`.
+- `flutter analyze`: `NO VALIDADO`.
+- `flutter test`: `NO VALIDADO`.
+
+These validations require manual execution by the user under the hybrid execution protocol.
+
+## Verdict
+
+Repository normalization and backend .NET validation are complete and approved with logs. Dart/Flutter validation remains pending manual execution.
